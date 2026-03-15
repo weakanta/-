@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル Pro v5</title>
+    <title>コトバ・サバイバル Pro v6</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
         .panel { background: white; padding: 20px; border-radius: 20px; width: 94%; max-width: 500px; margin: 15px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.05); box-sizing: border-box; }
-        
         .screen { display: none; }
         .active { display: block; }
         input, select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; width: 80%; margin: 5px 0; }
         .btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--main); color: white; }
         .btn-host { background: orange; color: white; width: 100%; margin-top: 15px; font-size: 1.1rem; }
-
-        /* カラーセレクター（ロビー用） */
+        
+        /* カラーセレクター */
         .color-picker { display: flex; justify-content: center; gap: 10px; margin: 10px 0; padding: 10px; background: #eee; border-radius: 12px; }
         .color-dot { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; position: relative; }
         .color-dot.selected { border-color: #333; transform: scale(1.1); }
@@ -32,11 +31,12 @@
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; }
         .key-group-label { grid-column: span 5; font-size: 0.65rem; color: #718096; text-align: left; padding: 4px 2px 0; }
 
-        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; transition: 0.3s; }
-        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 15px; z-index: 9999; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; }
+        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 30px; border-radius: 15px; z-index: 9999; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-size: 1.5rem; }
         #wrong-toast.show { transform: translate(-50%, -50%) scale(1); }
         .slot { width: 28px; height: 38px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
         .rank-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; }
+        .host-only { display: none; }
     </style>
 </head>
 <body>
@@ -55,6 +55,7 @@
 
     <div id="screen-lobby" class="screen panel">
         <h2>待機ロビー</h2>
+        <p style="font-size:0.8rem;">好きな色を選んでください</p>
         <div class="color-picker" id="lobby-color-picker">
             <div class="color-dot" style="background:#4a90e2" data-color="#4a90e2"></div>
             <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div>
@@ -75,8 +76,8 @@
                 <label>ライフ: <input type="number" id="select-h" value="17" style="width:50px;"></label>
             </div>
         </div>
-        <button id="btn-start" class="btn btn-host host-only">全員揃った！開始</button>
-        <p id="guest-msg" style="font-size:0.8rem; color:#666;">ホストが開始するのを待っています...</p>
+        <button id="btn-start" class="btn btn-host host-only">ゲームを開始！</button>
+        <p id="guest-msg" class="guest-info" style="font-size:0.8rem; color:#666;">ホストが開始するのを待っています...</p>
     </div>
 
     <div id="screen-game" class="screen panel">
@@ -110,7 +111,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- 音声エンジンの初期化をラップ ---
         let audioCtx;
         function playTone(freq, duration, type = "sine") {
             try {
@@ -148,68 +148,68 @@
         ];
 
         let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
-        let lastTurnId = "", lastStatus = "entry";
+        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0;
 
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
-
-        // 入口処理
-        const entry = (host) => {
+        const entry = async (host) => {
             isHost = host;
             myName = document.getElementById('input-name').value || "ななし";
             roomKey = "room_" + document.getElementById('input-room').value;
             myId = Math.random().toString(36).slice(2, 7);
             
             showScreen('screen-lobby');
-            if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
+            if(host) {
+                document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
+                // ホストが部屋を作るときに初期状態をリセット
+                await set(ref(db, `rooms/${roomKey}`), { 
+                    status: "lobby", 
+                    config: { g: "たべもの", h: 17, r: 10 },
+                    lastWrong: { char: "", time: 0 }
+                });
+            }
 
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
             set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
             onDisconnect(pRef).remove();
 
-            // Firebase 監視
             onValue(ref(db, `rooms/${roomKey}`), (snap) => {
                 const data = snap.val(); if(!data) return;
-                const prevData = currentData;
-                currentData = data;
-                
                 const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
+                
                 document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
-
-                // カラー重複チェック（ロビー用）
                 updateColorDots(players);
 
-                // ターン・ミスの通知（ゲーム中のみ）
+                // ゲーム中のリアルタイム処理
                 if(data.status === "playing") {
+                    // ターンの音
                     const currentPlayer = players[data.turnIdx];
                     if(currentPlayer?.id !== lastTurnId) {
                         lastTurnId = currentPlayer?.id;
                         if(lastTurnId === myId) sounds.turn();
                     }
-                    if(prevData && data.wrongAll?.length > (prevData.wrongAll?.length || 0)) {
-                        showWrongToast(data.wrongAll[data.wrongAll.length-1]);
+                    // ミスの通知 (lastWrongのtimeが変わった瞬間だけ表示)
+                    if(data.lastWrong && data.lastWrong.time > lastWrongTime) {
+                        lastWrongTime = data.lastWrong.time;
+                        showWrongToast(data.lastWrong.char);
                         sounds.wrong();
                     }
                 }
 
-                // 状態遷移のガード：statusが変わった時だけ画面を切り替える
+                // 画面遷移の同期
                 if(data.status !== lastStatus) {
                     lastStatus = data.status;
                     if(data.status === "playing") initGame(data);
                     else if(data.status === "finished") showResult(data, players);
                     else if(data.status === "lobby") showScreen('screen-lobby');
                 } else if(data.status === "playing") {
-                    renderUI(data); // 状態が変わっていなくても、文字の当たりハズレは更新
+                    renderUI(data);
                 }
+                currentData = data;
             });
         };
 
         document.getElementById('btn-create').onclick = () => entry(true);
         document.getElementById('btn-join').onclick = () => entry(false);
 
-        // カラー選択ロジック
         function updateColorDots(players) {
             const takenColors = players.filter(p => p.id !== myId).map(p => p.color);
             document.querySelectorAll('.color-dot').forEach(dot => {
@@ -226,7 +226,7 @@
         }
 
         function launchGame() {
-            const target = dictionary[currentData.config?.g || "たべもの"][Math.floor(Math.random() * 5)];
+            const target = dictionary[document.getElementById('select-g').value][Math.floor(Math.random() * 5)];
             const allChars = kanaGroups.map(g => g.chars).join("").split("");
             const removed = allChars.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
             
@@ -235,8 +235,11 @@
                 updates[`players/${pid}/score`] = 0;
                 updates[`players/${pid}/guessedStr`] = "";
             });
-            updates['status'] = "playing"; updates['target'] = target;
-            updates['turnIdx'] = 0; updates['wrongAll'] = [];
+            updates['status'] = "playing"; 
+            updates['target'] = target;
+            updates['turnIdx'] = 0; 
+            updates['wrongAll'] = [];
+            updates['lastWrong'] = { char: "", time: 0 };
             updates['config'] = { g: document.getElementById('select-g').value, h: parseInt(document.getElementById('select-h').value), removed };
             update(ref(db, `rooms/${roomKey}`), updates);
         }
@@ -246,6 +249,7 @@
         function initGame(data) {
             myGuessed = [];
             myHearts = data.config.h;
+            lastWrongTime = 0;
             showScreen('screen-game');
             const kb = document.getElementById('keyboard');
             kb.innerHTML = "";
@@ -278,7 +282,10 @@
                 myHearts--;
                 const wa = currentData.wrongAll || [];
                 wa.push(char);
-                update(ref(db, `rooms/${roomKey}`), { wrongAll: wa });
+                update(ref(db, `rooms/${roomKey}`), { 
+                    wrongAll: wa,
+                    lastWrong: { char: char, time: Date.now() } // ミス通知用のタイムスタンプ
+                });
             }
 
             const next = (currentData.turnIdx + 1) % pList.length;
@@ -304,12 +311,13 @@
             const curP = pList[data.turnIdx];
             const msg = document.getElementById('turn-msg');
             msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
-            msg.style.borderColor = curP?.color;
-            msg.style.color = curP?.color;
+            msg.style.borderColor = curP?.color || "#ddd";
+            msg.style.color = curP?.color || "#333";
             document.getElementById('heart-bar').innerText = "❤️".repeat(Math.max(0, myHearts));
         }
 
         function showWrongToast(char) {
+            if(!char) return;
             const t = document.getElementById('wrong-toast');
             t.innerText = `「${char}」はありません！`;
             t.classList.add('show');
@@ -322,7 +330,9 @@
             const area = document.getElementById('res-ranking');
             area.innerHTML = "";
             const sorted = players.sort((a,b) => b.score - a.score);
-            if(data.target.split("").every(c => myGuessed.includes(c))) sounds.win();
+            const iWon = data.target.split("").every(c => myGuessed.includes(c));
+            if(iWon) sounds.win();
+            document.getElementById('res-status').innerText = iWon ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
             sorted.forEach((p, i) => {
                 area.innerHTML += `<div class="rank-row"><span style="color:${p.color}"><b>${i+1}位: ${p.name}</b></span><span>${p.score}文字</span></div>`;
             });
