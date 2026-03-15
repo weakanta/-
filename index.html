@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル Pro v10</title>
+    <title>コトバ・サバイバル Pro v11</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -65,14 +65,7 @@
             <div class="host-only">
                 <hr>
                 <label>ジャンル:</label><br>
-                <select id="select-g">
-                    <option value="オールジャンル">オールジャンル</option>
-                    <option value="たべもの">たべもの</option>
-                    <option value="どうぶつ">どうぶつ</option>
-                    <option value="のりもの">のりもの</option>
-                    <option value="ポケモン">ポケモン</option>
-                    <option value="ちめい">ちめい</option>
-                </select><br>
+                <select id="select-g"></select><br>
                 <label>ライフ: <input type="number" id="select-h" value="17" style="width:50px;"></label>
             </div>
         </div>
@@ -101,8 +94,18 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        
         // 外部問題ファイルをインポート
         import { dictionary } from "./questions.js";
+
+        // ★ジャンルのプルダウンメニューを、questions.js の内容から自動生成する処理を追加
+        const selectG = document.getElementById('select-g');
+        Object.keys(dictionary).forEach(genre => {
+            const opt = document.createElement('option');
+            opt.value = genre;
+            opt.innerText = genre;
+            selectG.appendChild(opt);
+        });
 
         const firebaseConfig = {
             apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
@@ -154,9 +157,13 @@
             if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
             const roomRef = ref(db, `rooms/${roomKey}`);
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
+            
+            // デフォルトのジャンル設定（questions.jsの一番最初のジャンルをセット）
+            const defaultGenre = Object.keys(dictionary)[0] || "オールジャンル";
+
             const joinTask = host ? set(roomRef, { 
                 status: "lobby", 
-                config: { g: "オールジャンル", h: 17, r: 10 },
+                config: { g: defaultGenre, h: 17, r: 10 },
                 lastWrong: { char: "", time: 0 }
             }) : Promise.resolve();
             joinTask.then(() => {
