@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v34</title>
+    <title>コトバ・サバイバル v36</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -26,8 +26,9 @@
         .vote-btn { background: white; border: 2px solid #eee; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
         .vote-btn.selected { border-color: var(--main); background: #eef2ff; }
 
-        .color-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+        .color-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; }
         .color-btn.active { border-color: #333; transform: scale(1.1); }
+        .color-btn.taken { opacity: 0.2; cursor: not-allowed; border-color: transparent !important; }
 
         #heart-status { font-size: 1.8rem; margin-bottom: 10px; letter-spacing: 2px; }
         .word-slot { width: 30px; height: 40px; border-bottom: 3px solid #ccc; margin: 4px; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
@@ -38,6 +39,12 @@
         .key.wrong { background: var(--danger); color: white; box-shadow: none; }
 
         #chat-box { height: 250px; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 10px; padding: 10px; margin-bottom: 8px; border: 1px solid #eee; }
+        
+        /* スタンプエリア：縦に少し広げた */
+        .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stamp-btn { font-size: 1.5rem; height: 60px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 12px; transition: 0.1s; }
+        .stamp-btn:active { transform: scale(0.9); background: #e0e0e0; }
+
         .item-inventory { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
         .item-use-btn { background: #ffd32a; border: none; padding: 10px; border-radius: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #d4a017; font-size: 0.8rem; }
         
@@ -58,7 +65,7 @@
         <div class="side-panel" id="side-left" style="display:none;">
             <div class="panel" style="padding:15px;">
                 <div id="chat-box"></div>
-                <input type="text" id="chat-input" placeholder="メッセージを入力..." style="width:100%;">
+                <input type="text" id="chat-input" placeholder="チャット...">
                 <button id="sound-btn" onclick="toggleSnd()" style="width:100%; padding:8px; border-radius:10px; border:none; background:#2ed573; color:white; font-weight:bold; cursor:pointer; margin-top:10px;">🔊 音: ON</button>
             </div>
         </div>
@@ -70,29 +77,25 @@
                 <input type="text" id="input-room" placeholder="部屋ID" value="123">
                 <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:15px; text-align:left; font-size:0.8rem;">
                     <b>👑 ホスト設定:</b><br>
-                    <label><input type="radio" name="g-mode" value="vote" checked> みんなで投票</label><br>
-                    <label><input type="radio" name="g-mode" value="host"> ホストが選ぶ</label>
+                    <label><input type="radio" name="g-mode" value="vote" checked> 投票モード</label><br>
+                    <label><input type="radio" name="g-mode" value="host"> ホスト選択モード</label>
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <button id="btn-create" class="btn btn-primary">部屋を作る</button>
-                    <button id="btn-join" class="btn btn-primary" style="background:var(--sub)">参加する</button>
+                    <button id="btn-create" class="btn btn-primary">作る</button>
+                    <button id="btn-join" class="btn btn-primary" style="background:var(--sub)">入る</button>
                 </div>
             </div>
 
             <div id="screen-lobby" class="screen panel">
-                <h2 style="margin:0;">待機中...</h2>
-                <p style="font-size:0.9rem; font-weight:bold;">メンバー: <span id="lobby-list" style="color:var(--main);">---</span></p>
-                <div style="margin-bottom:15px;">
-                    <div style="font-size:0.8rem; margin-bottom:5px;">🎨 自分の色を選ぶ</div>
-                    <div id="color-palette" style="display:flex; justify-content:center; gap:8px;"></div>
-                </div>
+                <h2 style="margin:0;">ロビー</h2>
+                <div id="color-palette" style="display:flex; justify-content:center; gap:8px; margin:15px 0;"></div>
                 <div id="vote-area">
                     <div id="vote-msg" style="font-size:0.85rem; font-weight:bold; margin-bottom:5px;"></div>
                     <div id="vote-buttons" class="vote-list"></div>
                 </div>
                 <div class="host-only" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
-                    風船数: <input type="number" id="input-h" value="17" style="width:60px; display:inline;"> 🎈
-                    <button id="btn-start" class="btn btn-host" style="margin-top:15px;">ゲーム開始！</button>
+                    風船: <input type="number" id="input-h" value="17" style="width:60px;"> 🎈
+                    <button id="btn-start" class="btn btn-host">開始！</button>
                 </div>
             </div>
 
@@ -106,24 +109,25 @@
             </div>
 
             <div id="screen-result" class="screen panel">
-                <h1 id="res-title">RESULT</h1>
+                <h1>RESULT</h1>
                 <h2 id="res-word" style="background:#f0f0f0; padding:10px; border-radius:10px;"></h2>
                 <div id="res-rank" style="text-align:left; margin:15px 0;"></div>
+                <button id="btn-replay" class="btn btn-host host-only" style="display:none; margin-bottom:10px;">もう一度遊ぶ</button>
                 <button onclick="location.reload()" class="btn btn-primary">タイトルへ</button>
             </div>
         </div>
 
         <div class="side-panel" id="side-right" style="display:none;">
             <div class="panel" style="padding:10px; margin-bottom:10px;">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                    <button onclick="sendStamp('👏')" style="font-size:1.2rem; cursor:pointer; border:none; background:#f0f0f0; border-radius:8px;">👏</button>
-                    <button onclick="sendStamp('👍')" style="font-size:1.2rem; cursor:pointer; border:none; background:#f0f0f0; border-radius:8px;">👍</button>
-                    <button onclick="sendStamp('😮')" style="font-size:1.2rem; cursor:pointer; border:none; background:#f0f0f0; border-radius:8px;">😮</button>
-                    <button onclick="sendStamp('😭')" style="font-size:1.2rem; cursor:pointer; border:none; background:#f0f0f0; border-radius:8px;">😭</button>
+                <div class="stamp-grid">
+                    <button class="stamp-btn" onclick="sendStamp('👏')">👏</button>
+                    <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
+                    <button class="stamp-btn" onclick="sendStamp('😮')">😮</button>
+                    <button class="stamp-btn" onclick="sendStamp('😭')">😭</button>
                 </div>
             </div>
             <div id="game-items" class="panel" style="padding:10px; display:none;">
-                <div style="font-size:0.75rem; font-weight:bold; margin-bottom:5px;">ITEM</div>
+                <div style="font-size:0.75rem; font-weight:bold;">ITEM</div>
                 <div id="my-inventory" class="item-inventory"></div>
             </div>
         </div>
@@ -149,8 +153,8 @@
         const itemInfo = {
             HEAL: { name: "🎈回復", desc: "風船+5" },
             ATTACK: { name: "💣攻撃", desc: "他全員-3" },
-            REVEAL: { name: "🔍透視", desc: "1文字判明" },
-            CLEAN: { name: "🧹掃除", desc: "ミスを10個消去" }
+            REVEAL: { name: "🔍透視", desc: "1文字判明+得点" },
+            CLEAN: { name: "🧹掃除", desc: "ミス消去" }
         };
         const kana = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんーがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ";
 
@@ -162,7 +166,6 @@
         window.toggleSnd = () => {
             soundOn = !soundOn;
             document.getElementById('sound-btn').innerText = soundOn ? "🔊 音: ON" : "🔇 音: OFF";
-            document.getElementById('sound-btn').style.background = soundOn ? "#2ed573" : "#333";
             if(soundOn) initSnd();
         };
 
@@ -172,9 +175,10 @@
             const g = audioCtx.createGain();
             osc.connect(g); g.connect(audioCtx.destination);
             const now = audioCtx.currentTime;
-            if(type === 'ok') { osc.frequency.setValueAtTime(880, now); osc.frequency.exponentialRampToValueAtTime(1760, now+0.1); g.gain.setValueAtTime(0.1, now); }
-            else if(type === 'ng') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); g.gain.setValueAtTime(0.1, now); }
-            else { osc.type = 'square'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(660, now+0.1); g.gain.setValueAtTime(0.1, now); }
+            if(type === 'ok') { osc.frequency.setValueAtTime(880, now); osc.frequency.exponentialRampToValueAtTime(1760, now+0.1); g.gain.setValueAtTime(0.05, now); }
+            else if(type === 'ng') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); g.gain.setValueAtTime(0.05, now); }
+            else if(type === 'stamp') { osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1000, now+0.1); g.gain.setValueAtTime(0.05, now); }
+            else { osc.type = 'square'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(660, now+0.1); g.gain.setValueAtTime(0.05, now); }
             osc.start(); osc.stop(now+0.2);
         }
 
@@ -188,11 +192,8 @@
             const roomRef = ref(db, `rooms/${roomKey}`);
             if(host) {
                 set(roomRef, {
-                    status: "lobby",
-                    genreMode: document.querySelector('input[name="g-mode"]:checked').value,
-                    votes: {},
-                    selectedGenre: "オールジャンル",
-                    lastMsg: {time:0}, lastSnd: {time:0}, lastStamp: {time:0}
+                    status: "lobby", genreMode: document.querySelector('input[name="g-mode"]:checked').value,
+                    votes: {}, selectedGenre: "オールジャンル", lastMsg: {time:0}, lastSnd: {time:0}, lastStamp: {time:0}
                 });
             }
 
@@ -206,16 +207,6 @@
             showScreen('screen-lobby');
             if(host) document.querySelectorAll('.host-only').forEach(e => e.style.display = 'block');
 
-            const cp = document.getElementById('color-palette');
-            cp.innerHTML = '';
-            colors.forEach(c => {
-                const b = document.createElement('div');
-                b.className = 'color-btn'; b.style.background = c;
-                b.onclick = () => update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c });
-                cp.appendChild(b);
-            });
-
-            // チャット送信
             document.getElementById('chat-input').onkeydown = (e) => {
                 if(e.key === 'Enter' && e.target.value.trim()) {
                     push(ref(db, `rooms/${roomKey}/chats`), { name: myName, text: e.target.value, color: currentData.players[myId].color });
@@ -223,12 +214,10 @@
                 }
             };
 
-            // チャット購読
             onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
                 const box = document.getElementById('chat-box'); box.innerHTML = '';
                 snap.forEach(child => {
-                    const c = child.val();
-                    box.innerHTML += `<div><b style="color:${c.color}">${c.name}</b>: ${c.text}</div>`;
+                    const c = child.val(); box.innerHTML += `<div><b style="color:${c.color}">${c.name}</b>: ${c.text}</div>`;
                 });
                 box.scrollTop = box.scrollHeight;
             });
@@ -238,7 +227,7 @@
                 currentData = data;
                 const pKeys = Object.keys(data.players || {}).sort();
 
-                document.getElementById('lobby-list').innerText = pKeys.map(k => data.players[k].name).join(", ");
+                renderColorPalette(data);
                 renderVotes(data);
 
                 const inv = document.getElementById('my-inventory'); inv.innerHTML = "";
@@ -263,15 +252,27 @@
             });
         };
 
+        function renderColorPalette(data) {
+            const cp = document.getElementById('color-palette'); cp.innerHTML = '';
+            const takenColors = Object.values(data.players).map(p => p.color);
+            colors.forEach(c => {
+                const b = document.createElement('div');
+                const isTaken = takenColors.includes(c);
+                const isMine = data.players[myId]?.color === c;
+                b.className = `color-btn ${isMine ? 'active' : ''} ${isTaken && !isMine ? 'taken' : ''}`;
+                b.style.background = c;
+                if(!isTaken || isMine) b.onclick = () => update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c });
+                cp.appendChild(b);
+            });
+        }
+
         function renderVotes(data) {
             const container = document.getElementById('vote-buttons'); container.innerHTML = "";
             const genres = ["オールジャンル", ...Object.keys(dictionary)];
             const isVoteMode = data.genreMode === "vote";
-            document.getElementById('vote-msg').innerText = isVoteMode ? "🎨 ジャンルに投票してね" : "👑 ホストが選ぶモードです";
-
+            document.getElementById('vote-msg').innerText = isVoteMode ? "🎨 ジャンル投票" : "👑 ホストが選ぶ";
             genres.forEach(g => {
-                const btn = document.createElement('div');
-                btn.className = 'vote-btn';
+                const btn = document.createElement('div'); btn.className = 'vote-btn';
                 const count = Object.values(data.votes || {}).filter(v => v === g).length;
                 btn.innerHTML = `${g} ${isVoteMode ? `<span>(${count})</span>` : ''}`;
                 if(isVoteMode) {
@@ -303,7 +304,7 @@
             if(Math.random() < 0.15) {
                 const it = Object.keys(itemInfo)[Math.floor(Math.random() * 4)];
                 updates[`players/${pid}/items`] = [...(p.items || []), it];
-                updates[`lastMsg`] = { text: `${p.name}が [${itemInfo[it].name}] を手に入れた！`, time: Date.now() };
+                updates[`lastMsg`] = { text: `${p.name}が [${itemInfo[it].name}] をゲット！`, time: Date.now() };
                 updates[`lastSnd`] = { type: 'item', time: Date.now() };
             }
             if(data.target.includes(char)) {
@@ -319,6 +320,7 @@
             }
             updates[`turnIdx`] = (data.turnIdx + 1) % Object.keys(data.players).length;
             update(ref(db, `rooms/${roomKey}`), updates);
+            
             const latest = {...data.players};
             if(updates[`players/${pid}/guessed`]) latest[pid].guessed = updates[`players/${pid}/guessed`];
             if(data.target.split("").every(c => Object.values(latest).some(pl => (pl.guessed || "").includes(c))) || (p.hearts - (updates[`players/${pid}/hearts`]!==undefined?1:0)) <= 0) {
@@ -331,14 +333,19 @@
             const p = currentData.players[myId];
             const items = [...p.items]; items.splice(idx, 1);
             const up = { [`players/${myId}/items`]: items, lastSnd: {type:'item', time:Date.now()}, lastMsg: {text:`${p.name}が [${itemInfo[type].name}] を使った！`, time:Date.now()} };
+            
             if(type === "HEAL") up[`players/${myId}/hearts`] = (p.hearts || 0) + 5;
             else if(type === "ATTACK") Object.keys(currentData.players).forEach(id => { if(id !== myId) up[`players/${id}/hearts`] = Math.max(0, (currentData.players[id].hearts || 0) - 3); });
             else if(type === "REVEAL") {
-                const h = currentData.target.split("").filter(c => !(p.guessed || "").includes(c));
-                if(h.length > 0) up[`players/${myId}/guessed`] = (p.guessed ? p.guessed + "," : "") + h[Math.floor(Math.random()*h.length)];
+                const hidden = currentData.target.split("").filter(c => !(p.guessed || "").includes(c));
+                if(hidden.length > 0) {
+                    const char = hidden[Math.floor(Math.random()*hidden.length)];
+                    const newGuessed = (p.guessed ? p.guessed + "," : "") + char;
+                    up[`players/${myId}/guessed`] = newGuessed;
+                    up[`players/${myId}/score`] = newGuessed.split(",").length; // 得点加算
+                }
             } else if(type === "CLEAN") {
-                const wa = currentData.wrongAll || [];
-                up[`wrongAll`] = wa.slice(0, Math.max(0, wa.length - 10));
+                const wa = currentData.wrongAll || []; up[`wrongAll`] = wa.slice(0, Math.max(0, wa.length - 10));
             }
             update(ref(db, `rooms/${roomKey}`), up);
         }
@@ -371,22 +378,36 @@
             document.getElementById('res-word').innerText = "正解: " + data.target;
             const r = document.getElementById('res-rank'); r.innerHTML = "";
             pKeys.map(k => data.players[k]).sort((a,b)=>b.score-a.score).forEach((p,i) => {
-                r.innerHTML += `<div style="padding:5px; border-bottom:1px solid #eee;">${i+1}位: <span style="color:${p.color}">${p.name}</span> (${p.score}点)</div>`;
+                const guessedChars = p.guessed ? p.guessed.split(",").join(" ") : "なし";
+                r.innerHTML += `
+                    <div style="padding:10px; border-bottom:1px solid #eee; background:white; border-radius:10px; margin-bottom:5px;">
+                        <b style="color:${p.color}">${i+1}位: ${p.name}</b> (${p.score}点) / 🎈残: ${p.hearts}<br>
+                        <span style="font-size:0.75rem; color:#666;">当てた文字: ${guessedChars}</span>
+                    </div>`;
             });
         }
 
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function showT(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
-        window.sendStamp = (emoji) => update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() } });
+        
+        window.sendStamp = (emoji) => {
+            initSnd();
+            update(ref(db, `rooms/${roomKey}`), { 
+                lastStamp: { emoji, sender: myName, time: Date.now() },
+                lastSnd: { type: 'stamp', time: Date.now() }
+            });
+        };
+        
         function showS(s) { const p=document.getElementById('stamp-pop'); p.innerText=`${s.sender}: ${s.emoji}`; p.classList.add('show'); setTimeout(()=>p.classList.remove('show'), 1500); }
 
         document.getElementById('btn-create').onclick = () => startEntry(true);
         document.getElementById('btn-join').onclick = () => startEntry(false);
+        document.getElementById('btn-replay').onclick = () => update(ref(db, `rooms/${roomKey}`), { status: "lobby", votes: {} });
+
         document.getElementById('btn-start').onclick = () => {
             let g = currentData.selectedGenre || "オールジャンル";
             if(currentData.genreMode === "vote") {
-                const v = Object.values(currentData.votes || {});
-                if(v.length > 0) g = v[Math.floor(Math.random() * v.length)];
+                const v = Object.values(currentData.votes || {}); if(v.length > 0) g = v[Math.floor(Math.random() * v.length)];
             }
             const pool = (g === "オールジャンル") ? Object.values(dictionary).flat() : dictionary[g];
             const target = pool[Math.floor(Math.random() * pool.length)];
