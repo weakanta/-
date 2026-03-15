@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v30</title>
+    <title>コトバ・サバイバル v32</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -21,27 +21,22 @@
         .btn-host { background: orange; color: white; margin-top: 10px; font-size: 1.1rem; }
         
         input[type="text"], input[type="number"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-        input[type="color"] { border-radius: 8px; border: 1px solid #ddd; cursor: pointer; }
 
         .entry-settings { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; font-size: 0.9rem; border: 1px solid #eee; }
         
         .vote-list { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
         .vote-btn { background: white; border: 1px solid #ddd; padding: 8px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: flex; justify-content: space-between; }
         .vote-btn.voted { border-color: var(--main); background: #eef2ff; font-weight: bold; }
-        .host-select-mode { border: 2px solid orange !important; background: #fff8e1; }
 
-        /* アイテムBOX */
+        /* アイテムリスト */
         .item-box { margin-top: 20px; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: none; }
-        .item-btn { width: 100%; background: #ffd32a; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 0 #d4a017; font-size: 0.9rem; }
+        #inventory { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+        .item-btn { background: #ffd32a; border: none; padding: 10px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.8rem; box-shadow: 0 3px 0 #d4a017; }
         .item-btn:active { transform: translateY(2px); box-shadow: none; }
-        .item-count { background: #333; color: white; padding: 2px 8px; border-radius: 10px; margin-left: 5px; }
 
         /* ゲーム中表示 */
         #game-genre-label { position: absolute; top: 10px; left: 15px; background: rgba(0,0,0,0.7); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
-        
-        /* 🎈風船を元のサイズに戻す */
         #heart-status { margin-bottom: 10px; font-size: 1.8rem; letter-spacing: 2px; }
-        .prog-heart-text { font-size: 0.9rem; font-weight: bold; display: inline-block; margin-top: 3px; }
 
         /* キーボード */
         .kb-container { background: #e2e8f0; padding: 8px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
@@ -49,15 +44,13 @@
         .key.my-correct { background: var(--sub) !important; color: white; box-shadow: none; }
         .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: none; }
         
-        #chat-area { display: flex; flex-direction: column; height: 300px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
-        .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom:15px; }
-        .stamp-btn { font-size: 1.5rem; padding: 10px 0; border: none; background: #f0f3f5; border-radius: 12px; cursor: pointer; box-shadow: 0 3px 0 #ddd; }
-
-        #sound-toggle-btn { background: #333; color: white; border: none; padding: 10px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 3px 0 #111; margin-top: 10px; font-size:0.9rem;}
+        .side-panel button { margin-top: 10px; }
+        #sound-toggle-btn { background: var(--sub); color: white; border: none; padding: 10px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; }
 
         #stamp-popup { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 30px; border-radius: 40px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; font-size: 1.5rem; }
         #stamp-popup.show { transform: translate(-50%, -50%) scale(1); }
+        
+        .color-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
 
         @media (max-width: 900px) {
             .game-wrapper { flex-direction: column; align-items: center; }
@@ -68,64 +61,50 @@
 <body>
 
     <div id="stamp-popup"></div>
-    <div id="wrong-toast" style="position:fixed; top:40%; left:50%; transform:translate(-50%,-50%) scale(0); background:rgba(0,0,0,0.85); color:white; padding:20px 30px; border-radius:15px; z-index:999; transition:0.3s; pointer-events:none; font-size:1.2rem; font-weight:bold;"></div>
+    <div id="wrong-toast" style="position:fixed; top:40%; left:50%; transform:translate(-50%,-50%) scale(0); background:rgba(0,0,0,0.85); color:white; padding:20px 30px; border-radius:15px; z-index:999; transition:0.3s; pointer-events:none; font-size:1.1rem; font-weight:bold; white-space: nowrap;"></div>
 
     <div class="game-wrapper">
         <div class="side-panel" id="side-left" style="display:none;">
-            <div id="chat-area">
-                <div id="chat-box"></div>
-                <input type="text" id="chat-input" placeholder="Enterで送信">
+            <div id="chat-area" style="background:white; padding:10px; border-radius:20px;">
+                <div id="chat-box" style="height:200px; overflow-y:auto; text-align:left; font-size:0.8rem; background:#f8f9fa; padding:5px; margin-bottom:5px;"></div>
+                <input type="text" id="chat-input" placeholder="Enterで送信" style="width:100%;">
             </div>
-            <button id="sound-toggle-btn" onclick="toggleSound()">🔇 音: オフ</button>
+            <button id="sound-toggle-btn" onclick="toggleSound()">🔊 音: オン</button>
         </div>
 
         <div class="main-column">
             <div id="screen-entry" class="screen active panel">
-                <h1 style="color:var(--main); margin-top:0;">コトバ・サバイバル</h1>
-                
-                <div style="display:flex; gap:10px; margin-bottom:10px;">
-                    <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー" style="flex:1; margin-bottom:0;">
-                    <input type="color" id="input-color" value="#4a90e2" style="width:50px; height:42px; padding:0;">
-                </div>
-                
+                <h1 style="color:var(--main);">コトバ・サバイバル</h1>
+                <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー">
                 <input type="text" id="input-room" placeholder="部屋ID" value="123">
-                
                 <div class="entry-settings">
-                    <b style="color:#555;">👑 ホスト用設定（作る人）</b><br>
-                    <div style="margin-top:8px;">
-                        ジャンル決定方式：<br>
-                        <label><input type="radio" name="entry-mode" value="vote" checked> みんなで投票</label> &nbsp;
-                        <label><input type="radio" name="entry-mode" value="host"> ホストが選ぶ</label>
-                    </div>
+                    <b>👑 ホスト用設定</b><br>
+                    <label><input type="radio" name="entry-mode" value="vote" checked> 投票</label>
+                    <label><input type="radio" name="entry-mode" value="host"> ホスト選択</label>
                 </div>
-
                 <div style="display:flex; gap:10px;">
-                    <button id="btn-create" class="btn btn-primary" style="flex:1">作る</button>
-                    <button id="btn-join" class="btn btn-primary" style="flex:1; background:var(--sub)">参加</button>
+                    <button id="btn-create" class="btn btn-primary">作る</button>
+                    <button id="btn-join" class="btn btn-primary" style="background:var(--sub)">参加</button>
                 </div>
             </div>
 
             <div id="screen-lobby" class="screen panel">
-                <h2 style="margin-top:0;">待機ロビー</h2>
-                
-                <p style="font-weight:bold; margin-bottom:15px; font-size:1.05rem;">メンバー: <span id="lobby-members" style="color:var(--main);">---</span></p>
-                
-                <div class="vote-section">
-                    <div id="vote-title" style="font-weight:bold; font-size:0.9rem;">🎨 ジャンル設定</div>
-                    <div class="vote-list" id="vote-list"></div>
+                <h2>待機ロビー</h2>
+                <p>メンバー: <span id="lobby-members">---</span></p>
+                <div style="background:#f9f9f9; padding:10px; border-radius:12px; margin-bottom:15px;">
+                    <div id="color-palette" style="display:flex; justify-content:center; gap:10px;"></div>
                 </div>
-                <div class="host-only" style="display:none; margin-top:20px; background:#f9f9f9; padding:15px; border-radius:12px;">
-                    <div style="margin-bottom:10px; font-weight:bold;">ホスト操作</div>
-                    風船数: <input type="number" id="select-h" value="17" style="width:70px; display:inline-block; margin-bottom:0;"> 🎈<br>
-                    <button id="btn-add-cpu" class="btn" style="background:#636e72; color:white; margin-top:10px; padding:8px;">＋ CPU追加</button>
-                    <button id="btn-start" class="btn btn-host">ゲーム開始！</button>
+                <div class="vote-list" id="vote-list"></div>
+                <div class="host-only" style="display:none; margin-top:20px;">
+                    風船: <input type="number" id="select-h" value="17" style="width:60px;"> 🎈
+                    <button id="btn-add-cpu" class="btn" style="background:#636e72; color:white; padding:5px; margin:5px 0;">＋ CPU</button>
+                    <button id="btn-start" class="btn btn-host">開始！</button>
                 </div>
-                <p id="guest-msg" style="font-size:0.8rem; color:#666; margin-top:15px; font-weight:bold;">ホストの開始待ち...</p>
             </div>
 
             <div id="screen-game" class="screen panel">
                 <div id="game-genre-label">---</div>
-                <div id="turn-msg" style="font-weight:bold; font-size:1.1rem; padding:5px;">準備中...</div>
+                <div id="turn-msg"></div>
                 <div id="heart-status"></div>
                 <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:15px;"></div>
                 <div id="progress-area"></div>
@@ -133,11 +112,11 @@
             </div>
 
             <div id="screen-result" class="screen panel">
-                <h1 id="res-status" style="font-size:2.2rem; color:var(--main);">RESULT</h1>
-                <h2 id="res-word" style="background:#eee; padding:15px; border-radius:10px;"></h2>
-                <div id="res-ranking" style="text-align:left; margin:20px 0;"></div>
+                <h1 id="res-status">RESULT</h1>
+                <h2 id="res-word" style="background:#eee; padding:10px; border-radius:10px;"></h2>
+                <div id="res-ranking" style="text-align:left;"></div>
                 <button id="btn-replay" class="btn btn-host host-only" style="display:none;">もう一度</button>
-                <button onclick="location.reload()" class="btn btn-primary" style="margin-top:10px;">タイトルへ</button>
+                <button onclick="location.reload()" class="btn btn-primary">タイトルへ</button>
             </div>
         </div>
 
@@ -147,15 +126,11 @@
                 <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
                 <button class="stamp-btn" onclick="sendStamp('😮')">😮</button>
                 <button class="stamp-btn" onclick="sendStamp('😭')">😭</button>
-                <button class="stamp-btn" style="grid-column: span 2" onclick="sendStamp('💢')">💢</button>
             </div>
             
             <div class="item-box" id="item-box-container">
-                <div style="font-weight:bold; font-size:0.8rem; color:#666;">ITEM BOX</div>
-                <button id="item-use-btn" class="item-btn" onclick="useItem()" style="display:none;">
-                    🎁 ミステリーBOX <span id="item-qty" class="item-count">0</span>
-                </button>
-                <div id="item-empty" style="font-size:0.7rem; color:#999; margin-top:10px; font-weight:bold;">回答時に10%の確率で<br>手に入ります！</div>
+                <div style="font-weight:bold; font-size:0.8rem;">あなたのアイテム</div>
+                <div id="inventory"></div>
             </div>
         </div>
     </div>
@@ -174,58 +149,56 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let myId, myName, myColor, roomKey, isHost = false, currentData = null, lastStatus = "entry";
-        let lastStampTime = 0, lastSoundTime = 0;
-        let myItems = 0, myVote = "";
-        
-        // サウンド用変数
-        let audioCtx;
-        let soundEnabled = false;
+        let myId, myName, roomKey, isHost = false, currentData = null, lastStatus = "entry";
+        let lastStampTime = 0, lastSoundTime = 0, lastMsgTime = 0;
+        let audioCtx, soundEnabled = true;
+
+        const presetColors = ['#4a90e2', '#2ed573', '#ff4757', '#ffa502', '#9b59b6', '#e84393'];
+        const itemInfo = {
+            HEAL: { name: "🎈回復", desc: "自分の風船+5" },
+            ATTACK: { name: "💣攻撃", desc: "全員の風船-3" },
+            REVEAL: { name: "🔍透視", desc: "一文字判明" },
+            CLEAN: { name: "🧹掃除", desc: "不要な10文字消去" }
+        };
 
         const kanaGroups = [
-            { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" }, { label: "さ行", chars: "さしすせそ" }, { label: "たち行", chars: "たちつてと" }, { label: "な行", chars: "なにぬねの" }, { label: "は行", chars: "はひふへほ" }, { label: "ま行", chars: "まみむめも" }, { label: "や行", chars: "やゆよ" }, { label: "ら行", chars: "らりるれろ" }, { label: "わ行", chars: "わをんー" }, { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
+            { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" }, { label: "さ行", chars: "さしすせそ" }, { label: "た行", chars: "たちつてと" }, { label: "な行", chars: "なにぬねの" }, { label: "は行", chars: "はひふへほ" }, { label: "ま行", chars: "まみむめも" }, { label: "や行", chars: "やゆよ" }, { label: "ら行", chars: "らりるれろ" }, { label: "わ行", chars: "わをんー" }, { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
         ];
 
-        const getPlayerKeys = (playersObj) => Object.keys(playersObj || {}).sort();
+        function initAudio() {
+            if(soundEnabled && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioCtx?.state === 'suspended') audioCtx.resume();
+        }
 
-        // 🔊 サウンド再生処理 (Web Audio API)
         window.toggleSound = () => {
             soundEnabled = !soundEnabled;
             document.getElementById('sound-toggle-btn').innerText = soundEnabled ? "🔊 音: オン" : "🔇 音: オフ";
-            if(soundEnabled && !audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
+            if(soundEnabled) initAudio();
         };
 
         function playSound(type) {
             if(!soundEnabled || !audioCtx) return;
-            if(audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            
             const now = audioCtx.currentTime;
             if(type === 'correct') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now);
-                osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
+                osc.frequency.setValueAtTime(880, now); osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
                 gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                osc.start(); osc.stop(now + 0.2);
             } else if(type === 'wrong') {
                 osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
                 gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc.start(); osc.stop(now + 0.3);
             } else if(type === 'item') {
-                osc.type = 'square'; osc.frequency.setValueAtTime(400, now);
-                osc.frequency.setValueAtTime(600, now + 0.1);
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1);
                 gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc.start(); osc.stop(now + 0.3);
             }
+            osc.start(); osc.stop(now + 0.3);
         }
 
         const entry = (host) => {
+            initAudio();
             isHost = host;
             myName = document.getElementById('input-name').value || "プレイヤー";
-            myColor = document.getElementById('input-color').value || "#4a90e2";
             roomKey = "room_" + (document.getElementById('input-room').value || "123");
             myId = Math.random().toString(36).slice(2, 7);
             
@@ -233,213 +206,153 @@
             document.getElementById('side-left').style.display = 'block';
             document.getElementById('side-right').style.display = 'block';
             if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
-            else document.getElementById('guest-msg').style.display = 'block';
             
             const roomRef = ref(db, `rooms/${roomKey}`);
-            if(host) {
-                const mode = document.querySelector('input[name="entry-mode"]:checked').value;
-                set(roomRef, { status: "lobby", genreMode: mode, votes: {}, selectedByHost: "オールジャンル", lastStamp: {time:0}, lastSound: {time:0} });
-            }
+            if(host) set(roomRef, { status: "lobby", genreMode: document.querySelector('input[name="entry-mode"]:checked').value, votes: {}, selectedByHost: "オールジャンル", lastStamp: {time:0}, lastSound: {time:0}, lastMsg: {time:0} });
             
-            set(ref(db, `rooms/${roomKey}/players/${myId}`), { name: myName, score: 0, guessedStr: "", hearts: 17, color: myColor, isCPU: false, items: 0 });
+            set(ref(db, `rooms/${roomKey}/players/${myId}`), { name: myName, score: 0, guessedStr: "", hearts: 17, color: presetColors[0], items: [] });
             onDisconnect(ref(db, `rooms/${roomKey}/players/${myId}`)).remove();
             
+            const palette = document.getElementById('color-palette');
+            palette.innerHTML = '';
+            presetColors.forEach(c => {
+                const btn = document.createElement('div');
+                btn.className = 'color-btn'; btn.style.background = c;
+                btn.onclick = () => update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c });
+                palette.appendChild(btn);
+            });
+
             onValue(roomRef, (snap) => {
                 const data = snap.val(); if(!data) return;
                 currentData = data;
-                
-                const pKeys = getPlayerKeys(data.players);
-                document.getElementById('lobby-members').innerHTML = pKeys.map(id => `<span style="color:${data.players[id].color}">${data.players[id].name}</span>`).join(", ");
-                
+                const pKeys = Object.keys(data.players || {}).sort();
+                document.getElementById('lobby-members').innerText = pKeys.map(id => data.players[id].name).join(", ");
                 renderVotes(data);
                 
+                // アイテム欄の更新
+                const inv = document.getElementById('inventory'); inv.innerHTML = "";
+                const myItems = data.players[myId]?.items || [];
+                myItems.forEach((it, idx) => {
+                    const b = document.createElement('button');
+                    b.className = 'item-btn';
+                    b.innerText = itemInfo[it].name;
+                    b.onclick = () => useItem(it, idx);
+                    inv.appendChild(b);
+                });
                 document.getElementById('item-box-container').style.display = (data.status === "playing") ? 'block' : 'none';
-                
-                myItems = data.players[myId]?.items || 0;
-                document.getElementById('item-qty').innerText = myItems;
-                document.getElementById('item-use-btn').style.display = myItems > 0 ? 'block' : 'none';
-                document.getElementById('item-empty').style.display = myItems > 0 ? 'none' : 'block';
 
                 if(data.lastStamp?.time > lastStampTime) { lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp); }
-                
-                // サウンドの同期再生
-                if(data.lastSound?.time > lastSoundTime) { 
-                    lastSoundTime = data.lastSound.time; 
-                    playSound(data.lastSound.type); 
-                }
-                
-                if(data.status === "playing" && isHost) {
-                    const curP = data.players[pKeys[data.turnIdx]];
-                    if(curP?.isCPU) handleCPUTurn(pKeys[data.turnIdx], data);
-                }
+                if(data.lastSound?.time > lastSoundTime) { lastSoundTime = data.lastSound.time; playSound(data.lastSound.type); }
+                if(data.lastMsg?.time > lastMsgTime) { lastMsgTime = data.lastMsg.time; showToast(data.lastMsg.text); }
 
                 if(data.status !== lastStatus) {
                     lastStatus = data.status;
                     if(data.status === "playing") initGame(data);
                     else if(data.status === "finished") showResult(data, pKeys);
-                    else if(data.status === "lobby") showScreen('screen-lobby');
                 } else if(data.status === "playing") renderUI(data);
             });
         };
 
         function renderVotes(data) {
             const list = document.getElementById('vote-list'); list.innerHTML = "";
-            const isHostMode = data.genreMode === "host";
-            document.getElementById('vote-title').innerText = isHostMode ? "👑 ホストがジャンルを選択中" : "🎨 ジャンル投票";
-            
             const genres = Array.from(new Set([...Object.keys(dictionary), "オールジャンル"]));
-            
             genres.forEach(g => {
-                const count = Object.values(data.votes || {}).filter(v => v === g).length;
-                const b = document.createElement('div');
-                b.className = `vote-btn ${myVote === g ? 'voted' : ''} ${isHostMode && data.selectedByHost === g ? 'host-select-mode' : ''}`;
-                b.innerHTML = `<span>${g}</span> <b>${isHostMode ? '' : count}</b>`;
-                
-                b.onclick = () => {
-                    if(isHostMode) {
-                        if(isHost) update(ref(db, `rooms/${roomKey}`), { selectedByHost: g });
-                    } else {
-                        myVote = g; update(ref(db, `rooms/${roomKey}/votes`), { [myId]: g });
-                    }
-                };
+                const b = document.createElement('div'); b.className = 'vote-btn';
+                b.innerHTML = `<span>${g}</span>`;
+                b.onclick = () => update(ref(db, `rooms/${roomKey}/votes`), { [myId]: g });
                 list.appendChild(b);
             });
         }
 
-        function handleCPUTurn(cpuId, data) {
-            setTimeout(() => {
-                const allKana = kanaGroups.map(g => g.chars).join("").split("");
-                const guessed = Object.values(data.players).flatMap(p => (p.guessedStr || "").split(","));
-                const wrong = data.wrongAll || [];
-                const possible = allKana.filter(c => !guessed.includes(c) && !wrong.includes(c));
-                if(possible.length > 0) processGuess(cpuId, possible[Math.floor(Math.random() * possible.length)]);
-            }, 1500);
-        }
-
         function processGuess(pid, char) {
+            initAudio();
             const data = currentData; const p = data.players[pid]; const updates = {};
             
-            if(Math.random() < 0.1) {
-                updates[`players/${pid}/items`] = (p.items || 0) + 1;
-                updates[`lastSound`] = { type: 'item', time: Date.now() }; // アイテムゲット音
-                if(pid === myId) showWrongToast("🎁 アイテムGET！");
+            // アイテムゲット（直接）
+            if(Math.random() < 0.15) {
+                const itKeys = Object.keys(itemInfo);
+                const got = itKeys[Math.floor(Math.random() * itKeys.length)];
+                const currentItems = p.items || [];
+                updates[`players/${pid}/items`] = [...currentItems, got];
+                updates[`lastMsg`] = { text: `${p.name}が [${itemInfo[got].name}] を手に入れた！`, time: Date.now() };
+                updates[`lastSound`] = { type: 'item', time: Date.now() };
             }
 
             if(data.target.includes(char)) {
                 const g = (p.guessedStr ? p.guessedStr + "," : "") + char;
                 updates[`players/${pid}/guessedStr`] = g;
                 updates[`players/${pid}/score`] = g.split(",").length;
-                if(!updates[`lastSound`]) updates[`lastSound`] = { type: 'correct', time: Date.now() }; // 正解音
+                if(!updates[`lastSound`]) updates[`lastSound`] = { type: 'correct', time: Date.now() };
             } else {
                 updates[`players/${pid}/hearts`] = (p.hearts || 0) - 1;
                 const wa = data.wrongAll || []; wa.push(char); updates[`wrongAll`] = wa;
-                updates[`lastWrong`] = { char, time: Date.now() };
-                if(!updates[`lastSound`]) updates[`lastSound`] = { type: 'wrong', time: Date.now() }; // ブブー音
+                updates[`lastMsg`] = { text: `「${char}」ではありません！`, time: Date.now() };
+                if(!updates[`lastSound`]) updates[`lastSound`] = { type: 'wrong', time: Date.now() };
             }
             
-            const pKeys = getPlayerKeys(data.players);
+            const pKeys = Object.keys(data.players).sort();
             updates[`turnIdx`] = (data.turnIdx + 1) % pKeys.length;
             update(ref(db, `rooms/${roomKey}`), updates);
             
+            // 終了判定
             const latest = {...data.players};
             if(updates[`players/${pid}/guessedStr`]) latest[pid].guessedStr = updates[`players/${pid}/guessedStr`];
-            if(updates[`players/${pid}/hearts`] !== undefined) latest[pid].hearts = updates[`players/${pid}/hearts`];
             const clear = data.target.split("").every(c => Object.values(latest).some(pl => (pl.guessedStr || "").includes(c)));
-            if(clear || latest[pid].hearts <= 0) setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 800);
+            if(clear || (p.hearts - (updates[`players/${pid}/hearts`] === undefined ? 0 : 1)) <= 0) {
+                setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 800);
+            }
         }
 
-        window.useItem = () => {
-            if(myItems <= 0) return;
-            const effects = ["HEAL", "ATTACK", "REVEAL", "CLEAN"];
-            const effect = effects[Math.floor(Math.random() * effects.length)];
+        function useItem(type, idx) {
+            initAudio();
+            const p = currentData.players[myId];
             const updates = {};
-            const pList = currentData.players;
+            const items = [...p.items]; items.splice(idx, 1);
+            updates[`players/${myId}/items`] = items;
+            updates[`lastMsg`] = { text: `${p.name}が [${itemInfo[type].name}] を使った！`, time: Date.now() };
+            updates[`lastSound`] = { type: 'item', time: Date.now() };
 
-            if(effect === "HEAL") {
-                showWrongToast("🎈 風船が5回復した！");
-                updates[`players/${myId}/hearts`] = (pList[myId].hearts || 0) + 5;
-            } else if(effect === "ATTACK") {
-                showWrongToast("💣 全員の風船を3割った！");
-                Object.keys(pList).forEach(id => { if(id !== myId) updates[`players/${id}/hearts`] = Math.max(0, (pList[id].hearts || 0) - 3); });
-            } else if(effect === "REVEAL") {
-                showWrongToast("🔍 一文字判明した！");
-                const hidden = currentData.target.split("").filter(c => !(pList[myId].guessedStr || "").includes(c));
+            if(type === "HEAL") updates[`players/${myId}/hearts`] = (p.hearts || 0) + 5;
+            else if(type === "ATTACK") {
+                Object.keys(currentData.players).forEach(id => { if(id !== myId) updates[`players/${id}/hearts`] = Math.max(0, (currentData.players[id].hearts || 0) - 3); });
+            } else if(type === "REVEAL") {
+                const hidden = currentData.target.split("").filter(c => !(p.guessedStr || "").includes(c));
                 if(hidden.length > 0) {
-                    const char = hidden[Math.floor(Math.random() * hidden.length)];
-                    const g = (pList[myId].guessedStr ? pList[myId].guessedStr + "," : "") + char;
-                    updates[`players/${myId}/guessedStr`] = g;
-                    updates[`players/${myId}/score`] = g.split(",").length;
+                    const c = hidden[Math.floor(Math.random() * hidden.length)];
+                    updates[`players/${myId}/guessedStr`] = (p.guessedStr ? p.guessedStr + "," : "") + c;
                 }
-            } else if(effect === "CLEAN") {
-                showWrongToast("🧹 不要な10文字を除去！");
-                const allKana = kanaGroups.map(g => g.chars).join("").split("");
+            } else if(type === "CLEAN") {
+                const all = kanaGroups.map(g => g.chars).join("").split("");
                 const wrong = currentData.wrongAll || [];
-                const possible = allKana.filter(c => !currentData.target.includes(c) && !wrong.includes(c));
-                const removeSet = possible.sort(() => 0.5 - Math.random()).slice(0, 10);
-                updates[`wrongAll`] = [...wrong, ...removeSet];
+                const possible = all.filter(c => !currentData.target.includes(c) && !wrong.includes(c));
+                updates[`wrongAll`] = [...wrong, ...possible.sort(() => 0.5 - Math.random()).slice(0, 10)];
             }
-
-            updates[`players/${myId}/items`] = myItems - 1;
-            updates[`lastSound`] = { type: 'item', time: Date.now() }; // アイテム使用音
             update(ref(db, `rooms/${roomKey}`), updates);
-        };
-
-        document.getElementById('btn-add-cpu').onclick = () => {
-            const players = Object.values(currentData.players || {});
-            const cpuIndex = players.filter(p => p.isCPU).length + 1;
-            set(ref(db, `rooms/${roomKey}/players/cpu_${cpuIndex}`), { name: "CPU" + cpuIndex, score: 0, guessedStr: "", hearts: 17, color: "#636e72", isCPU: true });
-        };
+        }
 
         document.getElementById('btn-start').onclick = () => {
-            const isVote = currentData.genreMode === "vote";
-            let genre = "オールジャンル";
-            if(isVote) {
-                const voteValues = Object.values(currentData.votes || {});
-                if(voteValues.length > 0) genre = voteValues[Math.floor(Math.random() * voteValues.length)];
-            } else {
-                genre = currentData.selectedByHost || "オールジャンル";
-            }
-            let pool = (genre === "オールジャンル") ? Object.values(dictionary).flat() : dictionary[genre];
+            const genre = "オールジャンル";
+            const pool = Object.values(dictionary).flat();
             const target = pool[Math.floor(Math.random() * pool.length)];
             const h = parseInt(document.getElementById('select-h').value);
-            
             const updates = { status: "playing", target, turnIdx: 0, config: {g: genre, h}, wrongAll: [] };
             Object.keys(currentData.players).forEach(pid => { 
-                updates[`players/${pid}/score`] = 0; updates[`players/${pid}/guessedStr`] = ""; updates[`players/${pid}/hearts`] = h; 
+                updates[`players/${pid}/score`] = 0; updates[`players/${pid}/guessedStr`] = ""; updates[`players/${pid}/hearts`] = h; updates[`players/${pid}/items`] = [];
             });
             update(ref(db, `rooms/${roomKey}`), updates);
         };
 
         function initGame(data) {
             showScreen('screen-game');
-            document.getElementById('game-genre-label').innerText = "ジャンル: " + data.config.g;
+            document.getElementById('game-genre-label').innerText = data.config.g;
             const kb = document.getElementById('keyboard'); kb.innerHTML = "";
-            
             kanaGroups.forEach(group => {
-                const label = document.createElement("div");
-                label.className = "key-group-label";
-                label.style.gridColumn = "span 5";
-                label.style.fontSize = "0.75rem";
-                label.style.textAlign = "left";
-                label.style.fontWeight = "bold";
-                label.style.color = "#718096";
-                label.style.padding = "6px 2px 2px";
-                label.innerText = group.label;
-                kb.appendChild(label);
-
                 group.chars.split("").forEach(c => {
-                    const k = document.createElement("div");
-                    k.className = "key"; 
-                    k.id = "k-" + c; 
-                    k.innerText = c;
-                    k.onclick = () => { 
-                        const pKeys = getPlayerKeys(currentData.players);
-                        if(pKeys[currentData.turnIdx] === myId) processGuess(myId, c); 
-                    };
+                    const k = document.createElement("div"); k.className = "key"; k.id = "k-" + c; k.innerText = c;
+                    k.onclick = () => { if(Object.keys(data.players).sort()[data.turnIdx] === myId) processGuess(myId, c); };
                     kb.appendChild(k);
                 });
             });
-            renderUI(data);
         }
 
         function renderUI(data) {
@@ -447,49 +360,32 @@
             document.getElementById('heart-status').innerText = "🎈".repeat(Math.max(0, myP.hearts || 0));
             const display = document.getElementById('word-display'); display.innerHTML = "";
             data.target.split("").forEach(c => {
-                const s = document.createElement("div"); s.style="width:28px; height:38px; border-bottom:3px solid #ccc; margin:3px; font-size:1.4rem; font-weight:bold; display:flex; justify-content:center; align-items:center;";
+                const s = document.createElement("div"); s.style="width:25px; border-bottom:2px solid #333; margin:3px; font-size:1.2rem; height:30px;";
                 s.innerText = (myP.guessedStr || "").includes(c) ? c : ""; display.appendChild(s);
             });
+            const pKeys = Object.keys(data.players).sort();
+            const curP = data.players[pKeys[data.turnIdx]];
+            document.getElementById('turn-msg').innerText = (curP?.name === myName) ? "あなたの番！" : `${curP?.name}の番`;
             
-            const progArea = document.getElementById('progress-area'); progArea.innerHTML = "";
-            const pKeys = getPlayerKeys(data.players);
-            
-            pKeys.forEach(pid => {
-                const p = data.players[pid];
-                progArea.innerHTML += `<div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; margin-bottom:5px; background:#f9f9f9; padding:5px; border-radius:8px;">
-                    <div style="min-width:80px; text-align:right;">
-                        <b style="color:${p.color}">${p.name}</b><br>
-                        <span class="prog-heart-text">🎈${p.hearts}</span>
-                    </div>
-                    <div style="display:flex; gap:2px;">${data.target.split("").map(c => `<div style="width:8px; height:8px; border-radius:50%; background:${(p.guessedStr||"").includes(c)?p.color:'#ddd'}"></div>`).join("")}</div>
-                </div>`;
-            });
-
             document.querySelectorAll('.key').forEach(k => k.classList.remove('my-correct', 'wrong-all'));
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
             (myP.guessedStr || "").split(",").forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
-            
-            const curP = data.players[pKeys[data.turnIdx]];
-            const msg = document.getElementById('turn-msg'); msg.innerText = (curP?.name === myName) ? "★ あなたの番 ★" : `${curP?.name}の番...`;
-            msg.style.color = curP?.color || "#333";
         }
 
         function showResult(data, pKeys) {
             showScreen('screen-result');
             document.getElementById('res-word').innerText = "正解: " + data.target;
             const area = document.getElementById('res-ranking'); area.innerHTML = "";
-            const players = pKeys.map(id => data.players[id]);
-            players.sort((a,b)=>b.score-a.score).forEach((p,i)=> area.innerHTML += `<div style="padding:8px; border-bottom:1px solid #eee;"><b>${i+1}位: <span style="color:${p.color}">${p.name}</span></b> (正解:${p.score} / 🎈${p.hearts})</div>`);
+            pKeys.forEach(id => { const p = data.players[id]; area.innerHTML += `<div>${p.name}: ${p.score}点</div>`; });
         }
 
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        function showWrongToast(m) { const t=document.getElementById('wrong-toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1500); }
+        function showToast(m) { const t=document.getElementById('wrong-toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
         window.sendStamp = (emoji) => update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() } });
         function showStampPopup(s) { const p=document.getElementById('stamp-popup'); p.innerText=`${s.sender}: ${s.emoji}`; p.classList.add('show'); setTimeout(()=>p.classList.remove('show'), 1500); }
         
         document.getElementById('btn-create').onclick = () => entry(true);
         document.getElementById('btn-join').onclick = () => entry(false);
-        document.getElementById('btn-replay').onclick = document.getElementById('btn-start').onclick;
     </script>
 </body>
 </html>
