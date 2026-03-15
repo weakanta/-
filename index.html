@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v28</title>
+    <title>コトバ・サバイバル v29</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -22,24 +22,25 @@
         
         input[type="text"], input[type="number"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
 
-        /* 作成前設定UI */
         .entry-settings { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; font-size: 0.9rem; border: 1px solid #eee; }
         
-        /* 投票・選択設定 */
         .vote-list { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
         .vote-btn { background: white; border: 1px solid #ddd; padding: 8px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: flex; justify-content: space-between; }
         .vote-btn.voted { border-color: var(--main); background: #eef2ff; font-weight: bold; }
         .host-select-mode { border: 2px solid orange !important; background: #fff8e1; }
 
         /* アイテムBOX */
-        .item-box { margin-top: 20px; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: none; /* 初期非表示 */ }
+        .item-box { margin-top: 20px; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: none; }
         .item-btn { width: 100%; background: #ffd32a; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 0 #d4a017; font-size: 0.9rem; }
         .item-btn:active { transform: translateY(2px); box-shadow: none; }
         .item-count { background: #333; color: white; padding: 2px 8px; border-radius: 10px; margin-left: 5px; }
 
         /* ゲーム中表示 */
         #game-genre-label { position: absolute; top: 10px; left: 15px; background: rgba(0,0,0,0.7); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
-        #heart-status { margin-bottom: 10px; font-size: 1.8rem; letter-spacing: 2px; }
+        
+        /* 🎈風船を大きく */
+        #heart-status { margin-bottom: 10px; font-size: 2.8rem; letter-spacing: 5px; text-shadow: 0 3px 5px rgba(0,0,0,0.1); }
+        .prog-heart-text { font-size: 1.2rem; font-weight: bold; display: inline-block; margin-top: 3px; }
 
         /* キーボード */
         .kb-container { background: #e2e8f0; padding: 8px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
@@ -48,7 +49,6 @@
         .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: none; }
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; }
         
-        /* チャット & スタンプ */
         #chat-area { display: flex; flex-direction: column; height: 350px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
         .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
@@ -99,6 +99,9 @@
 
             <div id="screen-lobby" class="screen panel">
                 <h2 style="margin-top:0;">待機ロビー</h2>
+                
+                <p style="font-weight:bold; margin-bottom:15px; font-size:1.05rem;">メンバー: <span id="lobby-members" style="color:var(--main);">---</span></p>
+                
                 <div class="vote-section">
                     <div id="vote-title" style="font-weight:bold; font-size:0.9rem;">🎨 ジャンル設定</div>
                     <div class="vote-list" id="vote-list"></div>
@@ -170,6 +173,9 @@
             { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" }, { label: "さ行", chars: "さしすせそ" }, { label: "たち行", chars: "たちつてと" }, { label: "な行", chars: "なにぬねの" }, { label: "は行", chars: "はひふへほ" }, { label: "ま行", chars: "まみむめも" }, { label: "や行", chars: "やゆよ" }, { label: "ら行", chars: "らりるれろ" }, { label: "わ行", chars: "わをんー" }, { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
         ];
 
+        // 順番を安定させるための関数
+        const getPlayerKeys = (playersObj) => Object.keys(playersObj || {}).sort();
+
         const entry = (host) => {
             isHost = host;
             myName = document.getElementById('input-name').value || "プレイヤー";
@@ -184,7 +190,6 @@
             
             const roomRef = ref(db, `rooms/${roomKey}`);
             if(host) {
-                // 作成前に選んだラジオボタンの値を反映
                 const mode = document.querySelector('input[name="entry-mode"]:checked').value;
                 set(roomRef, { status: "lobby", genreMode: mode, votes: {}, selectedByHost: "オールジャンル", lastStamp: {time:0} });
             }
@@ -195,11 +200,13 @@
             onValue(roomRef, (snap) => {
                 const data = snap.val(); if(!data) return;
                 currentData = data;
-                const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
+                
+                // メンバー表示の更新
+                const pKeys = getPlayerKeys(data.players);
+                document.getElementById('lobby-members').innerText = pKeys.map(id => data.players[id].name).join(", ");
                 
                 renderVotes(data);
                 
-                // アイテムBOXの表示切替（ゲーム中のみ表示）
                 document.getElementById('item-box-container').style.display = (data.status === "playing") ? 'block' : 'none';
                 
                 myItems = data.players[myId]?.items || 0;
@@ -209,16 +216,15 @@
 
                 if(data.lastStamp?.time > lastStampTime) { lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp); }
                 
-                // CPUアクション
                 if(data.status === "playing" && isHost) {
-                    const curP = players[data.turnIdx];
-                    if(curP?.isCPU) handleCPUTurn(curP, data);
+                    const curP = data.players[pKeys[data.turnIdx]];
+                    if(curP?.isCPU) handleCPUTurn(pKeys[data.turnIdx], data);
                 }
 
                 if(data.status !== lastStatus) {
                     lastStatus = data.status;
                     if(data.status === "playing") initGame(data);
-                    else if(data.status === "finished") showResult(data, players);
+                    else if(data.status === "finished") showResult(data, pKeys);
                     else if(data.status === "lobby") showScreen('screen-lobby');
                 } else if(data.status === "playing") renderUI(data);
             });
@@ -248,20 +254,19 @@
             });
         }
 
-        function handleCPUTurn(cpu, data) {
+        function handleCPUTurn(cpuId, data) {
             setTimeout(() => {
                 const allKana = kanaGroups.map(g => g.chars).join("").split("");
                 const guessed = Object.values(data.players).flatMap(p => (p.guessedStr || "").split(","));
                 const wrong = data.wrongAll || [];
                 const possible = allKana.filter(c => !guessed.includes(c) && !wrong.includes(c) && !data.config.removed?.includes(c));
-                if(possible.length > 0) processGuess(cpu.id, possible[Math.floor(Math.random() * possible.length)]);
+                if(possible.length > 0) processGuess(cpuId, possible[Math.floor(Math.random() * possible.length)]);
             }, 1500);
         }
 
         function processGuess(pid, char) {
             const data = currentData; const p = data.players[pid]; const updates = {};
             
-            // 【重要】回答時に正解・不正解問わず10%でアイテム抽選
             if(Math.random() < 0.1) {
                 updates[`players/${pid}/items`] = (p.items || 0) + 1;
                 if(pid === myId) showWrongToast("🎁 アイテムGET！");
@@ -276,10 +281,10 @@
                 const wa = data.wrongAll || []; wa.push(char); updates[`wrongAll`] = wa;
                 updates[`lastWrong`] = { char, time: Date.now() };
             }
-            updates[`turnIdx`] = (data.turnIdx + 1) % Object.keys(data.players).length;
+            const pKeys = getPlayerKeys(data.players);
+            updates[`turnIdx`] = (data.turnIdx + 1) % pKeys.length;
             update(ref(db, `rooms/${roomKey}`), updates);
             
-            // クリア判定
             const latest = {...data.players};
             if(updates[`players/${pid}/guessedStr`]) latest[pid].guessedStr = updates[`players/${pid}/guessedStr`];
             if(updates[`players/${pid}/hearts`] !== undefined) latest[pid].hearts = updates[`players/${pid}/hearts`];
@@ -352,11 +357,29 @@
             showScreen('screen-game');
             document.getElementById('game-genre-label').innerText = "ジャンル: " + data.config.g;
             const kb = document.getElementById('keyboard'); kb.innerHTML = "";
+            
+            // バグ修正: createElementを使って正しくイベントを紐づける
             kanaGroups.forEach(group => {
-                kb.innerHTML += `<div class="key-group-label" style="grid-column:span 5; font-size:0.7rem; text-align:left;">${group.label}</div>`;
+                const label = document.createElement("div");
+                label.className = "key-group-label";
+                label.style.gridColumn = "span 5";
+                label.style.fontSize = "0.75rem";
+                label.style.textAlign = "left";
+                label.style.fontWeight = "bold";
+                label.style.color = "#718096";
+                label.style.padding = "6px 2px 2px";
+                label.innerText = group.label;
+                kb.appendChild(label);
+
                 group.chars.split("").forEach(c => {
-                    const k = document.createElement("div"); k.className="key"; k.id="k-"+c; k.innerText=c;
-                    k.onclick = () => { if(Object.keys(currentData.players)[currentData.turnIdx] === myId) processGuess(myId, c); };
+                    const k = document.createElement("div");
+                    k.className = "key"; 
+                    k.id = "k-" + c; 
+                    k.innerText = c;
+                    k.onclick = () => { 
+                        const pKeys = getPlayerKeys(currentData.players);
+                        if(pKeys[currentData.turnIdx] === myId) processGuess(myId, c); 
+                    };
                     kb.appendChild(k);
                 });
             });
@@ -373,9 +396,15 @@
             });
             
             const progArea = document.getElementById('progress-area'); progArea.innerHTML = "";
-            Object.entries(data.players).forEach(([pid, p]) => {
+            const pKeys = getPlayerKeys(data.players);
+            
+            pKeys.forEach(pid => {
+                const p = data.players[pid];
                 progArea.innerHTML += `<div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; margin-bottom:5px; background:#f9f9f9; padding:5px; border-radius:8px;">
-                    <div style="min-width:70px; text-align:right;"><b style="color:${p.color}">${p.name}</b><br>🎈${p.hearts}</div>
+                    <div style="min-width:80px; text-align:right;">
+                        <b style="color:${p.color}">${p.name}</b><br>
+                        <span class="prog-heart-text">🎈${p.hearts}</span>
+                    </div>
                     <div style="display:flex; gap:2px;">${data.target.split("").map(c => `<div style="width:8px; height:8px; border-radius:50%; background:${(p.guessedStr||"").includes(c)?p.color:'#ddd'}"></div>`).join("")}</div>
                 </div>`;
             });
@@ -384,15 +413,16 @@
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
             (myP.guessedStr || "").split(",").forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
             
-            const curP = Object.values(data.players)[data.turnIdx];
+            const curP = data.players[pKeys[data.turnIdx]];
             const msg = document.getElementById('turn-msg'); msg.innerText = (curP?.name === myName) ? "★ あなたの番 ★" : `${curP?.name}の番...`;
             msg.style.color = curP?.color || "#333";
         }
 
-        function showResult(data, players) {
+        function showResult(data, pKeys) {
             showScreen('screen-result');
             document.getElementById('res-word').innerText = "正解: " + data.target;
             const area = document.getElementById('res-ranking'); area.innerHTML = "";
+            const players = pKeys.map(id => data.players[id]);
             players.sort((a,b)=>b.score-a.score).forEach((p,i)=> area.innerHTML += `<div style="padding:8px; border-bottom:1px solid #eee;"><b>${i+1}位: ${p.name}</b> (正解:${p.score} / 🎈${p.hearts})</div>`);
         }
 
