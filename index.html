@@ -3,49 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v17</title>
+    <title>コトバ・サバイバル v18</title>
     <style>
-        :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f0f2f5; }
-        body { background: var(--bg); font-family: sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; color: #333; }
+        :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
+        body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* 共通レイアウト */
-        .screen { display: none; flex: 1; flex-direction: column; padding: 10px; box-sizing: border-box; overflow-y: auto; }
+        .screen { display: none; flex: 1; flex-direction: column; padding: 8px; box-sizing: border-box; }
         .active { display: flex; }
-        .panel { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 8px; }
+        .panel { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); margin-bottom: 8px; }
 
-        /* ロビー（デカく見やすく） */
-        #screen-lobby h2 { font-size: 2.5rem; margin: 0; color: var(--main); }
-        .member-card { font-size: 1.4rem; font-weight: bold; padding: 12px; background: #fff; border: 2px solid var(--main); border-radius: 10px; margin: 8px 0; }
+        /* ロビー（デカく） */
+        #screen-lobby h2 { font-size: 2.2rem; color: var(--main); margin: 10px 0; }
+        .member-card { font-size: 1.3rem; font-weight: bold; padding: 12px; background: white; border: 2px solid #ddd; border-radius: 10px; margin: 8px 0; }
 
-        /* ゲーム中：単語表示 */
-        .slot { width: 24px; height: 35px; border-bottom: 3px solid #ccc; font-size: 1.4rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
-        .turn-indicator { font-size: 1rem; font-weight: bold; padding: 8px; border-radius: 10px; border: 2px solid #ddd; margin-bottom: 5px; }
+        /* ゲーム表示 */
+        .slot { width: 22px; height: 32px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 1px; }
+        .turn-indicator { font-size: 0.9rem; font-weight: bold; padding: 6px; border-radius: 8px; border: 2px solid #eee; margin-bottom: 5px; background: white; }
 
-        /* キーボード（劇的改善） */
-        .kb-section-label { font-size: 0.7rem; color: #666; text-align: left; margin: 5px 0 2px 2px; font-weight: bold; }
-        .kb-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; background: #ddd; padding: 4px; border-radius: 8px; margin-bottom: 10px; }
-        .key { aspect-ratio: 1.3; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; 
-               font-size: 1.2rem; font-weight: 900; cursor: pointer; box-shadow: 0 2px 0 #bbb; }
+        /* 10列キーボード（復活＆文字デカ） */
+        .kb-container { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #e2e8f0; padding: 3px; border-radius: 8px; }
+        .key { aspect-ratio: 0.85; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; 
+               font-size: 1.1rem; font-weight: 900; cursor: pointer; box-shadow: 0 1px 0 #cbd5e0; color: #333; }
         .key:active { transform: translateY(1px); box-shadow: none; }
-        .key.my-correct { background: var(--sub) !important; color: white; border: none; }
-        .key.wrong-all { background: var(--danger) !important; color: white; border: none; }
-        .key.removed { background: #eee !important; color: #ccc !important; opacity: 0.4; pointer-events: none; box-shadow: none; }
+        .key.my-correct { background: var(--sub) !important; color: white; box-shadow: none; }
+        .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: none; }
+        .key.removed { background: #cbd5e0 !important; opacity: 0.2; pointer-events: none; }
 
-        /* 進捗状況（自分以外） */
-        .prog-row { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; margin-top: 3px; justify-content: center; }
-        .p-dot { width: 8px; height: 8px; background: #ddd; border-radius: 2px; }
+        /* 進捗（コンパクト） */
+        .prog-row { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; justify-content: center; margin-bottom: 2px; }
+        .p-dot { width: 7px; height: 7px; background: #ddd; border-radius: 50%; }
         .p-dot.filled { background: var(--sub); }
 
         /* 下部UI（チャット・スタンプ固定） */
-        .bottom-ui { background: white; border-top: 2px solid #ddd; padding: 8px; }
-        #chat-box { height: 70px; overflow-y: auto; text-align: left; font-size: 0.85rem; padding: 5px; background: #fdfdfd; border: 1px solid #eee; margin-bottom: 5px; border-radius: 5px; }
-        .stamp-row { display: flex; justify-content: space-around; font-size: 1.6rem; margin-bottom: 8px; }
-        .chat-row { display: flex; gap: 5px; }
-        #chat-input { flex: 1; border: 1px solid #ccc; border-radius: 20px; padding: 5px 15px; }
+        .bottom-ui { background: white; border-top: 1px solid #ddd; padding: 6px; }
+        #chat-box { height: 60px; overflow-y: auto; text-align: left; font-size: 0.8rem; padding: 4px; background: #f8f9fa; border-radius: 8px; margin-bottom: 4px; border: 1px solid #eee; }
+        .stamp-row { display: flex; justify-content: space-around; font-size: 1.5rem; margin-bottom: 6px; }
+        .chat-row { display: flex; gap: 4px; }
+        #chat-input { flex: 1; border: 1px solid #ddd; border-radius: 15px; padding: 4px 12px; font-size: 0.9rem; }
 
-        .btn { padding: 12px 20px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .btn { padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
         .btn-primary { background: var(--main); color: white; }
-        #stamp-popup { position: fixed; top: 25%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 30px; border-radius: 50px; border: 4px solid var(--main); z-index: 9999; font-size: 1.2rem; font-weight: bold; transition: 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        #stamp-popup { position: fixed; top: 25%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 12px 24px; border-radius: 40px; border: 3px solid var(--main); z-index: 9999; font-weight: bold; transition: 0.2s; pointer-events: none; }
         #stamp-popup.show { transform: translate(-50%, -50%) scale(1); }
     </style>
 </head>
@@ -54,67 +52,59 @@
     <div id="stamp-popup"></div>
 
     <div id="screen-entry" class="screen active">
-        <div class="panel" style="margin-top: 40px;">
-            <h1 style="color:var(--main); font-size: 2.2rem;">コトバ・サバイバル</h1>
-            <input type="text" id="input-name" placeholder="あなたのなまえ" value="プレイヤー" style="width:85%; padding:15px; font-size:1.2rem; margin-bottom:15px; border-radius:10px; border:1px solid #ccc;"><br>
-            <input type="text" id="input-room" placeholder="部屋ID(数字)" value="123" style="width:85%; padding:15px; font-size:1.2rem; margin-bottom:20px; border-radius:10px; border:1px solid #ccc;"><br>
-            <button id="btn-create" class="btn btn-primary" style="width:45%; font-size:1.1rem;">部屋を作る</button>
-            <button id="btn-join" class="btn btn-primary" style="width:45%; background:var(--sub); font-size:1.1rem;">参加する</button>
+        <div class="panel" style="margin-top: 30px; text-align: center;">
+            <h1 style="color:var(--main); margin-bottom: 20px;">コトバ・サバイバル</h1>
+            <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー" style="width:80%; padding:12px; font-size:1.1rem; margin-bottom:10px;"><br>
+            <input type="text" id="input-room" placeholder="部屋ID" value="123" style="width:80%; padding:12px; font-size:1.1rem; margin-bottom:20px;"><br>
+            <button id="btn-create" class="btn btn-primary" style="width:45%">部屋を作る</button>
+            <button id="btn-join" class="btn btn-primary" style="width:45%; background:var(--sub)">参加する</button>
         </div>
     </div>
 
     <div id="screen-lobby" class="screen">
-        <div class="panel">
+        <div class="panel" style="text-align: center;">
             <h2>LOBBY</h2>
-            <div id="lobby-members" style="margin: 15px 0;"></div>
-            <div class="host-only" style="display:none; background:#f9f9f9; padding:15px; border-radius:10px;">
-                <label style="font-weight:bold;">ジャンル：</label><br>
-                <select id="select-g" style="width:100%; padding:10px; font-size:1rem; margin:10px 0;"></select><br>
-                <label style="font-weight:bold;">ライフ(ミスできる回数)：</label><br>
-                <input type="number" id="select-h" value="17" style="width:60px; padding:8px; font-size:1rem;"><br><br>
-                <button id="btn-start" class="btn btn-primary" style="width:100%; font-size:1.5rem; background:orange; height:60px;">ゲームを開始する！</button>
+            <div id="lobby-members"></div>
+            <div class="host-only" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+                ジャンル: <select id="select-g" style="padding:8px; width:100%; margin:8px 0;"></select><br>
+                ライフ: <input type="number" id="select-h" value="17" style="width:60px; padding:8px;"><br><br>
+                <button id="btn-start" class="btn btn-primary" style="width:100%; font-size:1.4rem; background:orange;">ゲーム開始！</button>
             </div>
-            <p id="guest-msg" style="font-size:1.1rem; color:#666; margin-top:20px;">ホストが開始するのを待っています...</p>
+            <p id="guest-msg" style="color:#666;">ホストの開始を待っています...</p>
         </div>
     </div>
 
     <div id="screen-game" class="screen">
-        <div class="panel" style="padding:10px;">
-            <div id="turn-msg" class="turn-indicator">対戦準備中...</div>
-            <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin:10px 0;"></div>
-            <div id="progress-area" style="border-top:1px solid #eee; padding-top:5px;"></div>
-            <div style="font-size:1rem; margin-top:5px;">❤️ ライフ: <span id="heart-count" style="font-weight:bold; color:var(--danger);"></span></div>
+        <div class="panel" style="padding:8px; text-align: center;">
+            <div id="turn-msg" class="turn-indicator">待機中</div>
+            <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin:8px 0;"></div>
+            <div id="progress-area"></div>
+            <div style="font-size:0.85rem; margin-top:4px;">❤️ ライフ: <span id="heart-count" style="color:var(--danger); font-weight:bold;"></span></div>
         </div>
-
-        <div id="keyboard-area" style="overflow-y: auto; flex:1;">
-            <div class="kb-section-label">【50音】</div>
-            <div id="kb-main" class="kb-container"></div>
-            <div class="kb-section-label">【濁音・小文字など】</div>
-            <div id="kb-sub" class="kb-container"></div>
-        </div>
+        <div id="keyboard" class="kb-container"></div>
     </div>
 
     <div id="screen-result" class="screen">
-        <div class="panel">
-            <h1 id="res-status" style="font-size:2.5rem;">RESULT</h1>
-            <h2 id="res-word" style="color:var(--main); background:#eee; padding:10px; border-radius:10px;"></h2>
-            <div id="res-ranking" style="text-align:left; font-size:1.2rem; margin:20px 0;"></div>
-            <button onclick="location.reload()" class="btn btn-primary" style="width:100%; height:60px; font-size:1.2rem;">トップへ戻る</button>
+        <div class="panel" style="text-align: center;">
+            <h1 id="res-status" style="font-size:2.2rem;">RESULT</h1>
+            <h2 id="res-word" style="color:var(--main); background:#f0f0f0; padding:10px; border-radius:8px;"></h2>
+            <div id="res-ranking" style="text-align:left; margin:15px 0;"></div>
+            <button onclick="location.reload()" class="btn btn-primary" style="width:100%; font-size:1.2rem;">タイトルへ</button>
         </div>
     </div>
 
     <div id="common-ui" class="bottom-ui" style="display:none;">
         <div id="chat-box"></div>
         <div class="stamp-row">
-            <span onclick="sendStamp('👏')">👏</span>
-            <span onclick="sendStamp('👍')">👍</span>
-            <span onclick="sendStamp('😮')">😮</span>
-            <span onclick="sendStamp('😭')">😭</span>
-            <span onclick="sendStamp('💢')">💢</span>
+            <span onclick="sendStamp('👏')" style="cursor:pointer">👏</span>
+            <span onclick="sendStamp('👍')" style="cursor:pointer">👍</span>
+            <span onclick="sendStamp('😮')" style="cursor:pointer">😮</span>
+            <span onclick="sendStamp('😭')" style="cursor:pointer">😭</span>
+            <span onclick="sendStamp('💢')" style="cursor:pointer">💢</span>
         </div>
         <div class="chat-row">
             <input type="text" id="chat-input" placeholder="メッセージ...">
-            <button onclick="sendChat()" class="btn btn-primary">送信</button>
+            <button onclick="sendChat()" class="btn btn-primary" style="padding:0 12px;">送信</button>
         </div>
     </div>
 
@@ -144,8 +134,7 @@
             } catch(e) {}
         }
 
-        const mainKana = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんー".split("");
-        const subKana = "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ".split("");
+        const kanaList = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんーがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ".split("");
 
         let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
         let lastTurnId = "", lastStatus = "entry", lastStampTime = 0;
@@ -172,7 +161,6 @@
                 const data = snap.val(); if(!data) return;
                 currentData = data;
                 const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
-                
                 if(data.status === "lobby") document.getElementById('lobby-members').innerHTML = players.map(p => `<div class="member-card">${p.name}</div>`).join("");
                 
                 if(data.status === "playing") {
@@ -187,7 +175,6 @@
                         if(lastTurnId === myId) playTone(880, 0.08, "triangle");
                     }
                 }
-
                 if(data.status !== lastStatus) {
                     lastStatus = data.status;
                     if(data.status === "playing") initGame(data);
@@ -228,22 +215,18 @@
         document.getElementById('btn-start').onclick = () => {
             const g = document.getElementById('select-g').value;
             const target = dictionary[g][Math.floor(Math.random() * dictionary[g].length)];
-            const all = [...mainKana, ...subKana];
-            const removed = all.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 12);
+            const removed = kanaList.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
             update(ref(db, `rooms/${roomKey}`), { status: "playing", target, turnIdx: 0, wrongAll: [], config: { g, h: parseInt(document.getElementById('select-h').value), removed } });
         };
 
         function initGame(data) {
             myGuessed = []; myHearts = data.config.h; showScreen('screen-game');
-            const makeKeys = (list, containerId) => {
-                const con = document.getElementById(containerId); con.innerHTML = "";
-                list.forEach(c => {
-                    const k = document.createElement("div"); k.className = "key"; k.id = "k-" + c; k.innerText = c;
-                    if(data.config.removed?.includes(c)) k.classList.add("removed");
-                    k.onclick = () => handleGuess(c); con.appendChild(k);
-                });
-            };
-            makeKeys(mainKana, "kb-main"); makeKeys(subKana, "kb-sub");
+            const kb = document.getElementById('keyboard'); kb.innerHTML = "";
+            kanaList.forEach(c => {
+                const k = document.createElement("div"); k.className = "key"; k.id = "k-" + c; k.innerText = c;
+                if(data.config.removed?.includes(c)) k.classList.add("removed");
+                k.onclick = () => handleGuess(c); kb.appendChild(k);
+            });
         }
 
         function handleGuess(char) {
@@ -276,33 +259,7 @@
             Object.entries(data.players).forEach(([pid, p]) => {
                 if(pid === myId) return;
                 const row = document.createElement('div'); row.className = "prog-row";
-                row.innerHTML = `<span style="width:50px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.name}:</span>`;
+                row.innerHTML = `<span style="width:50px; text-align:right;">${p.name.slice(0,3)}:</span>`;
                 data.target.split("").forEach(char => {
                     const dot = document.createElement('div');
-                    dot.className = "p-dot" + ((p.guessedStr || "").includes(char) ? " filled" : "");
-                    row.appendChild(dot);
-                });
-                progArea.appendChild(row);
-            });
-            document.querySelectorAll('.key').forEach(k => k.classList.remove('my-correct', 'wrong-all'));
-            if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
-            myGuessed.forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
-            const curP = Object.entries(data.players).map(([id, p]) => ({id, ...p}))[data.turnIdx];
-            const msg = document.getElementById('turn-msg');
-            msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
-            msg.style.color = (curP?.id === myId) ? "var(--sub)" : "#666";
-            document.getElementById('heart-count').innerText = Math.max(0, myHearts);
-        }
-
-        function showResult(data, players) {
-            showScreen('screen-result');
-            document.getElementById('res-word').innerText = "正解: " + data.target;
-            const area = document.getElementById('res-ranking'); area.innerHTML = "";
-            const sorted = players.sort((a,b) => b.score - a.score);
-            document.getElementById('res-status').innerText = (sorted[0].id === myId) ? "👑 WINNER!" : "FINISH";
-            sorted.forEach((p, i) => area.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee;"><b>${i+1}位: ${p.name}</b> (${p.score}文字)</div>`);
-        }
-        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-    </script>
-</body>
-</html>
+                    dot.className = "p-dot" + ((p
