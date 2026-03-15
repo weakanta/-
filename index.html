@@ -3,89 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル アルティメット</title>
+    <title>コトバ・サバイバル Pro</title>
     <style>
-        :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --dark: #2c3e50; }
-        body { background: #f0f4f8; font-family: 'Hiragino Sans', 'Meiryo', sans-serif; margin: 0; text-align: center; color: var(--dark); }
-        .panel { background: white; padding: 20px; border-radius: 20px; width: 92%; max-width: 500px; margin: 15px auto; box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
+        :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
+        body { background: var(--bg); font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif; margin: 0; text-align: center; color: #333; }
+        .panel { background: white; padding: 20px; border-radius: 20px; width: 94%; max-width: 500px; margin: 15px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.05); box-sizing: border-box; }
         
-        /* ロビー・設定 */
-        .config-area { text-align: left; background: #f9f9f9; padding: 15px; border-radius: 12px; margin: 15px 0; font-size: 0.9rem; }
-        .config-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        select, input[type="number"], input[type="text"] { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; }
-        .btn-main { background: var(--main); color: white; padding: 15px; border: none; border-radius: 12px; width: 100%; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
-        .btn-sub { background: var(--sub); color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; }
+        /* ロビーフロー */
+        .screen { display: none; }
+        .active { display: block; }
+        input, select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; width: 80%; margin: 5px 0; }
+        .btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--main); color: white; }
+        .btn-host { background: orange; color: white; width: 100%; margin-top: 15px; font-size: 1.1rem; }
 
-        /* ゲーム画面 */
-        #turn-display { padding: 12px; font-weight: bold; border-radius: 12px; margin-bottom: 10px; border: 2px solid #ddd; }
-        .active-turn { background: #e3f2fd; color: #1976d2; border-color: #bbdefb; animation: flash 1.5s infinite; }
-        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-        
-        #word-display { display: flex; justify-content: center; gap: 6px; margin: 20px 0; flex-wrap: wrap; min-height: 50px; }
-        .slot { width: 32px; height: 42px; border-bottom: 3px solid #cbd5e0; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        /* 50音キーボード（5列グリッド） */
+        .kb-container { background: #e2e8f0; padding: 8px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .key { aspect-ratio: 1.2; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
+        .key.my-used { background: #94a3b8 !important; color: transparent; pointer-events: none; opacity: 0.2; box-shadow: none; }
+        .key.wrong-all { background: var(--danger) !important; color: white; }
+        .key.removed { background: #cbd5e0 !important; color: transparent; pointer-events: none; opacity: 0.4; box-shadow: none; }
+        .key-group-label { grid-column: span 5; font-size: 0.7rem; color: #718096; text-align: left; padding: 4px 0 0 4px; }
 
-        /* 50音キーボード */
-        #keyboard { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: #e2e8f0; padding: 8px; border-radius: 12px; }
-        .key { aspect-ratio: 1.2; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #cbd5e0; }
-        .key:active { transform: translateY(2px); box-shadow: none; }
-        .key.my-used { background: #94a3b8; color: transparent; pointer-events: none; opacity: 0.3; }
-        .key.wrong-all { background: var(--danger) !important; color: white; border: none; }
-        .key.removed { background: #cbd5e0 !important; color: transparent; pointer-events: none; opacity: 0.5; box-shadow: none; }
+        /* ゲーム画面要素 */
+        #word-display { display: flex; justify-content: center; gap: 4px; margin: 15px 0; flex-wrap: wrap; }
+        .slot { width: 30px; height: 40px; border-bottom: 3px solid #cbd5e0; font-size: 1.4rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        #turn-msg { padding: 10px; border-radius: 10px; margin-bottom: 10px; font-weight: bold; border: 2px solid transparent; }
+        .my-turn-anim { background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
         /* リザルト */
-        #result-screen { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 2000; flex-direction: column; padding: 20px; overflow-y: auto; }
-        .rank-card { background: #f8fafc; padding: 12px; border-radius: 10px; margin: 5px 0; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--main); }
-        .progress-text { font-family: monospace; letter-spacing: 2px; color: #64748b; }
-        
+        .rank-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
         .host-only { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="lobby" class="panel">
-        <h1 style="color:var(--main); margin-top:0;">コトバ・サバイバル</h1>
-        <input type="text" id="nameInput" placeholder="なまえ" value="プレイヤー" style="width:80%; margin-bottom:10px;"><br>
-        <input type="text" id="roomInput" placeholder="部屋ID" value="777" style="width:80%;"><br>
-        
-        <div style="display:flex; gap:10px; margin:20px 0;">
-            <button id="createBtn" class="btn-sub" style="flex:1">部屋を作る</button>
-            <button id="joinBtn" class="btn-sub" style="flex:1; background:#6366f1">参加する</button>
+    <div id="screen-entry" class="screen active panel">
+        <h1 style="color:var(--main)">コトバ・サバイバル</h1>
+        <input type="text" id="input-name" placeholder="なまえを入力" value="プレイヤー"><br>
+        <input type="text" id="input-room" placeholder="部屋IDを入力" value="123"><br>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button id="btn-create" class="btn btn-primary" style="flex:1">部屋を作る</button>
+            <button id="btn-join" class="btn btn-primary" style="flex:1; background:var(--sub)">参加する</button>
         </div>
+    </div>
 
-        <div id="room-info" style="display:none">
-            <div class="config-area">
-                <div class="config-item">ジャンル: <span id="view-g">未設定</span>
-                    <select id="set-g" class="host-only">
-                        <option value="たべもの">たべもの</option>
-                        <option value="どうぶつ">どうぶつ</option>
-                        <option value="のりもの">のりもの</option>
-                        <option value="むし">むし</option>
-                        <option value="ポケモン">ポケモン</option>
-                        <option value="ちめい">ちめい</option>
-                    </select>
-                </div>
-                <div class="config-item">ライフ: <span id="view-h">17</span> <input type="number" id="set-h" value="17" class="host-only"></div>
-                <div class="config-item">ヒント(除外文字): <span id="view-r">10</span> <input type="number" id="set-r" value="10" class="host-only"></div>
-                <div style="margin-top:10px;">参加者: <b id="player-list-names">---</b></div>
+    <div id="screen-lobby" class="screen panel">
+        <h2>待機中...</h2>
+        <div style="text-align:left; background:#f9f9f9; padding:15px; border-radius:12px;">
+            <p><b>参加メンバー:</b> <span id="lobby-members">---</span></p>
+            <hr>
+            <div class="host-only">
+                <label>ジャンル:</label><br>
+                <select id="select-g">
+                    <option value="たべもの">たべもの</option><option value="どうぶつ">どうぶつ</option>
+                    <option value="のりもの">のりもの</option><option value="むし">むし</option>
+                    <option value="ポケモン">ポケモン</option><option value="ちめい">ちめい</option>
+                </select><br>
+                <label>ライフ:</label> <input type="number" id="select-h" value="17" style="width:60px;"><br>
+                <label>除外文字数:</label> <input type="number" id="select-r" value="10" style="width:60px;">
             </div>
-            <button id="startBtn" class="btn-main host-only" style="background:orange">ゲーム開始！</button>
-            <p id="wait-msg" style="color:#666; font-size:0.8rem;">ホストが開始するのを待っています...</p>
+            <div id="guest-view" style="display:none;">
+                <p>ジャンル: <b id="view-g">---</b></p>
+                <p>ライフ: <b id="view-h">---</b> | 除外: <b id="view-r">---</b></p>
+            </div>
         </div>
+        <button id="btn-start" class="btn btn-host host-only">ゲームを開始する！</button>
+        <p id="guest-msg" style="font-size:0.8rem; color:#666;">ホストが開始するのを待っています...</p>
     </div>
 
-    <div id="game-screen" class="panel" style="display:none">
-        <div id="turn-display">読み込み中...</div>
-        <div id="heart-count" style="color:var(--danger); font-size:1.2rem; margin-bottom:5px;"></div>
-        <div id="genre-tag" style="font-size:0.8rem; background:#edf2f7; display:inline-block; padding:2px 10px; border-radius:10px; margin-bottom:10px;"></div>
+    <div id="screen-game" class="screen panel">
+        <div id="turn-msg">読み込み中...</div>
+        <div id="heart-bar" style="color:var(--danger); font-size:1.2rem; margin-bottom:10px;"></div>
         <div id="word-display"></div>
-        <div id="keyboard"></div>
+        <div id="keyboard" class="kb-container"></div>
     </div>
 
-    <div id="result-screen">
-        <h1 id="res-status" style="margin-bottom:0">RESULT</h1>
+    <div id="screen-result" class="screen panel">
+        <h1 id="res-status">RESULT</h1>
         <h2 id="res-word" style="color:var(--main)">正解: ---</h2>
-        <div id="ranking-area" style="width:100%; max-width:400px; margin:20px auto;"></div>
-        <button onclick="location.reload()" class="btn-main" style="width:200px;">ロビーに戻る</button>
+        <div id="res-ranking"></div>
+        <button onclick="location.reload()" class="btn btn-primary" style="margin-top:20px; width:100%;">ロビーに戻る</button>
     </div>
 
     <script type="module">
@@ -104,7 +103,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        const dict = {
+        const dictionary = {
             "たべもの": ["おむらいす", "めろんぱん", "そふとくりーむ", "たこやき", "すぱげってぃ", "ぽてとふらい", "かれーらいす"],
             "どうぶつ": ["らいおん", "ちんぱんじー", "はむすたー", "ふらみんご", "きりん", "しか", "かんがるー"],
             "のりもの": ["しんかんせん", "へりこぷたー", "しょうぼうしゃ", "きゅうきゅうしゃ", "よっと"],
@@ -112,109 +111,140 @@
             "ポケモン": ["ぴかちゅう", "りざーどん", "いーぶい", "げっこうがー", "るかりお", "みゅうつー", "かびごん", "れっくうざ"],
             "ちめい": ["ほっかいどう", "とうきょう", "おおさか", "ふじさん", "おきなわ", "よこはま", "なごや", "きょうと"]
         };
-        const alpha = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんーがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉ".split("");
         
-        let myId, myName, gameId, isHost = false, myHearts = 17, myGuessed = [], players = [];
+        const kanaGroups = [
+            { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" },
+            { label: "さ行", chars: "さしすせそ" }, { label: "た行", chars: "たちつてと" },
+            { label: "な行", chars: "なにぬねの" }, { label: "は行", chars: "はひふへほ" },
+            { label: "ま行", chars: "まみむめも" }, { label: "やわ行", chars: "やゆよわをんー" },
+            { label: "ら行", chars: "らりるれろ" }, { label: "濁点・他", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉ" }
+        ];
 
-        document.getElementById("createBtn").onclick = () => joinRoom(true);
-        document.getElementById("joinBtn").onclick = () => joinRoom(false);
+        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
 
-        function joinRoom(host) {
+        // 画面切り替え
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // ロビー入り口
+        document.getElementById('btn-create').onclick = () => entry(true);
+        document.getElementById('btn-join').onclick = () => entry(false);
+
+        function entry(host) {
             isHost = host;
-            myName = document.getElementById("nameInput").value || "名無し";
-            gameId = "game_" + document.getElementById("roomInput").value;
+            myName = document.getElementById('input-name').value || "プレイヤー";
+            roomKey = "room_" + document.getElementById('input-room').value;
             myId = Math.random().toString(36).slice(2, 7);
-            
-            document.getElementById("room-info").style.display = "block";
+
+            showScreen('screen-lobby');
             if(host) {
-                document.querySelectorAll(".host-only").forEach(el => el.style.display="inline-block");
-                document.getElementById("wait-msg").style.display = "none";
+                document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
+                syncConfig(); // ホストは初期値を送信
+            } else {
+                document.getElementById('guest-view').style.display = 'block';
             }
 
-            const pRef = ref(db, `rooms/${gameId}/players/${myId}`);
+            const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
             set(pRef, { name: myName, score: 0, guessedStr: "", host: host });
             onDisconnect(pRef).remove();
 
-            onValue(ref(db, `rooms/${gameId}`), (snap) => {
+            onValue(ref(db, `rooms/${roomKey}`), (snap) => {
                 const data = snap.val(); if(!data) return;
-                players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
-                document.getElementById("player-list-names").innerText = players.map(p => p.name).join(", ");
+                currentData = data;
+                const players = Object.values(data.players || {});
+                document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
                 
                 if(data.config) {
-                    document.getElementById("view-g").innerText = data.config.g;
-                    document.getElementById("view-h").innerText = data.config.h;
-                    document.getElementById("view-r").innerText = data.config.r;
+                    document.getElementById('view-g').innerText = data.config.g;
+                    document.getElementById('view-h').innerText = data.config.h;
+                    document.getElementById('view-r').innerText = data.config.r;
                 }
                 if(data.status === "playing") initGame(data);
                 if(data.status === "finished") showResult(data);
             });
         }
 
-        document.getElementById("startBtn").onclick = () => {
-            const g = document.getElementById("set-g").value;
-            const h = parseInt(document.getElementById("set-h").value);
-            const r = parseInt(document.getElementById("set-r").value);
-            const target = dict[g][Math.floor(Math.random() * dict[g].length)];
-            let removable = alpha.filter(c => !target.includes(c));
-            const removed = removable.sort(() => Math.random() - 0.5).slice(0, r);
+        // ホストの設定をFirebaseに同期
+        function syncConfig() {
+            if(!isHost) return;
+            const config = {
+                g: document.getElementById('select-g').value,
+                h: parseInt(document.getElementById('select-h').value),
+                r: parseInt(document.getElementById('select-r').value)
+            };
+            update(ref(db, `rooms/${roomKey}`), { config });
+        }
+        document.getElementById('select-g').onchange = syncConfig;
+        document.getElementById('select-h').onchange = syncConfig;
+        document.getElementById('select-r').onchange = syncConfig;
 
-            update(ref(db, `rooms/${gameId}`), {
-                status: "playing", target, config: { g, h, r, removed }, turnIdx: 0, wrongAll: []
+        // ゲーム開始
+        document.getElementById('btn-start').onclick = () => {
+            const conf = currentData.config;
+            const target = dictionary[conf.g][Math.floor(Math.random() * dictionary[conf.g].length)];
+            const allChars = kanaGroups.map(g => g.chars).join("").split("");
+            let removable = allChars.filter(c => !target.includes(c));
+            const removed = removable.sort(() => Math.random() - 0.5).slice(0, conf.r);
+
+            update(ref(db, `rooms/${roomKey}`), {
+                status: "playing", target, turnIdx: 0, wrongAll: [], 
+                config: { ...conf, removed }
             });
         };
 
         function initGame(data) {
-            document.getElementById("lobby").style.display = "none";
-            document.getElementById("game-screen").style.display = "block";
-            document.getElementById("genre-tag").innerText = "ジャンル: " + data.config.g;
+            showScreen('screen-game');
             myHearts = data.config.h;
-
-            const kb = document.getElementById("keyboard");
+            const kb = document.getElementById('keyboard');
             kb.innerHTML = "";
-            alpha.forEach(c => {
-                const d = document.createElement("div"); d.className = "key"; d.id = "k-" + c; d.innerText = c;
-                if(data.config.removed.includes(c)) d.classList.add("removed");
-                d.onclick = () => handleGuess(c, data);
-                kb.appendChild(d);
+            kanaGroups.forEach(group => {
+                const label = document.createElement("div");
+                label.className = "key-group-label"; label.innerText = group.label;
+                kb.appendChild(label);
+                group.chars.split("").forEach(c => {
+                    const k = document.createElement("div");
+                    k.className = "key"; k.id = "k-" + c; k.innerText = c;
+                    if(data.config.removed.includes(c)) k.classList.add("removed");
+                    k.onclick = () => handleGuess(c);
+                    kb.appendChild(k);
+                });
             });
             renderUI(data);
         }
 
-        function handleGuess(char, data) {
-            const turnIdx = data.turnIdx;
-            if(players[turnIdx].id !== myId) return; // 自分の番じゃない
+        function handleGuess(char) {
+            const pList = Object.entries(currentData.players).map(([id, p]) => ({id, ...p}));
+            if(pList[currentData.turnIdx].id !== myId) return;
 
             const btn = document.getElementById("k-"+char);
             if(btn.classList.contains("my-used") || btn.classList.contains("wrong-all")) return;
             btn.classList.add("my-used");
 
-            if(data.target.includes(char)) {
+            if(currentData.target.includes(char)) {
                 myGuessed.push(char);
             } else {
                 myHearts--;
-                const wa = data.wrongAll || [];
+                const wa = currentData.wrongAll || [];
                 if(!wa.includes(char)) wa.push(char);
-                update(ref(db, `rooms/${gameId}`), { wrongAll: wa });
+                update(ref(db, `rooms/${roomKey}`), { wrongAll: wa });
             }
 
-            // 個人データを更新
-            update(ref(db, `rooms/${gameId}/players/${myId}`), { 
-                score: myGuessed.length, 
-                guessedStr: myGuessed.join(",") 
+            update(ref(db, `rooms/${roomKey}/players/${myId}`), { 
+                score: myGuessed.length, guessedStr: myGuessed.join(",") 
             });
 
-            // ターン交代（常に）
-            const nextIdx = (turnIdx + 1) % players.length;
-            update(ref(db, `rooms/${gameId}`), { turnIdx: nextIdx });
+            const next = (currentData.turnIdx + 1) % pList.length;
+            update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
 
-            // 終了判定（自分が全文字当てたか、ライフが尽きたか）
-            if(data.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
-                update(ref(db, `rooms/${gameId}`), { status: "finished" });
+            if(currentData.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
+                update(ref(db, `rooms/${roomKey}`), { status: "finished" });
             }
         }
 
         function renderUI(data) {
-            const display = document.getElementById("word-display");
+            const display = document.getElementById('word-display');
             display.innerHTML = "";
             data.target.split("").forEach(c => {
                 const s = document.createElement("div"); s.className = "slot";
@@ -222,40 +252,34 @@
                 display.appendChild(s);
             });
 
-            // 共通ミスの反映
-            if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c).classList.add("wrong-all"));
+            if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add("wrong-all"));
 
-            const bar = document.getElementById("turn-display");
-            const isMyTurn = (players[data.turnIdx]?.id === myId);
-            bar.innerText = isMyTurn ? "★ あなたの番です ★" : `${players[data.turnIdx]?.name}の番...`;
-            bar.className = isMyTurn ? "active-turn" : "";
-            document.getElementById("heart-count").innerText = "❤️".repeat(Math.max(0, myHearts));
+            const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
+            const isMy = (pList[data.turnIdx].id === myId);
+            const msg = document.getElementById('turn-msg');
+            msg.innerText = isMy ? "★ あなたの番です ★" : `${pList[data.turnIdx].name}の番...`;
+            msg.className = isMy ? "my-turn-anim" : "";
+            document.getElementById('heart-bar').innerText = "❤️".repeat(Math.max(0, myHearts));
         }
 
         function showResult(data) {
-            document.getElementById("game-screen").style.display = "none";
-            document.getElementById("result-screen").style.display = "flex";
-            document.getElementById("res-word").innerText = "正解: " + data.target;
-            
-            const area = document.getElementById("ranking-area");
+            showScreen('screen-result');
+            document.getElementById('res-word').innerText = "正解: " + data.target;
+            const area = document.getElementById('res-ranking');
             area.innerHTML = "";
-            
-            // スコア順に並び替え
-            const sorted = players.sort((a,b) => b.score - a.score);
-            const winnerId = data.target.split("").every(c => sorted[0].guessedStr.split(",").includes(c)) ? sorted[0].id : null;
-
-            document.getElementById("res-status").innerText = (myId === winnerId) ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
+            const sorted = Object.values(data.players).sort((a,b) => b.score - a.score);
+            const winner = data.target.split("").every(c => sorted[0].guessedStr.split(",").includes(c));
+            document.getElementById('res-status').innerText = (winner && sorted[0].name === myName) ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
 
             sorted.forEach((p, i) => {
-                const pGuessed = p.guessedStr ? p.guessedStr.split(",") : [];
-                const card = document.createElement("div");
-                card.className = "rank-card";
-                card.innerHTML = `
-                    <div><b>${i+1}位: ${p.name}</b></div>
-                    <div class="progress-text">${data.target.split("").map(c => pGuessed.includes(c)?c:"_").join("")}</div>
-                    <div style="color:var(--main); font-weight:bold;">${p.score}字</div>
-                `;
-                area.appendChild(card);
+                const pG = p.guessedStr.split(",");
+                const progress = data.target.split("").map(c => pG.includes(c)?c:"_").join("");
+                area.innerHTML += `
+                    <div class="rank-row">
+                        <span><b>${i+1}位: ${p.name}</b></span>
+                        <span style="font-family:monospace; color:#666;">${progress}</span>
+                        <span style="color:var(--main)">${p.score}字</span>
+                    </div>`;
             });
         }
     </script>
