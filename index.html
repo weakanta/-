@@ -3,32 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v21</title>
+    <title>コトバ・サバイバル v22</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
-        
-        /* 基本パネル */
         .panel { background: white; padding: 20px; border-radius: 20px; width: 94%; max-width: 500px; margin: 15px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.05); box-sizing: border-box; position: relative; }
         .screen { display: none; }
         .active { display: block; }
-        
         input, select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; width: 80%; margin: 5px 0; box-sizing: border-box; }
         .btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; }
         .btn-primary { background: var(--main); color: white; }
         .btn-host { background: orange; color: white; width: 100%; margin-top: 15px; font-size: 1.2rem; }
-        
-        /* ロビーのカラーピッカー */
         .color-picker { display: flex; justify-content: center; gap: 10px; margin: 10px 0; padding: 10px; background: #eee; border-radius: 12px; }
         .color-dot { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; position: relative; }
         .color-dot.selected { border-color: #333; transform: scale(1.1); }
         .color-dot.taken { opacity: 0.2; cursor: not-allowed; pointer-events: none; }
         .color-dot.taken::after { content: "×"; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
         
-        /* 5列グループ分けキーボード */
+        /* v14準拠 5列キーボード */
         .kb-container { background: #e2e8f0; padding: 8px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .key { aspect-ratio: 1.1; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
-        .key:active { transform: translateY(2px); box-shadow: none; }
         .key.my-correct { background: var(--sub) !important; color: white; box-shadow: none; }
         .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: none; }
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; box-shadow: none; }
@@ -38,31 +32,25 @@
         .slot { width: 28px; height: 38px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
         .host-only { display: none; }
 
-        /* 他プレイヤーの進捗状況 */
+        /* 進捗状況（名前制限解除） */
         #progress-area { margin-bottom: 15px; background: #f9f9f9; padding: 8px; border-radius: 10px; }
-        .prog-row { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.8rem; margin: 4px 0; }
-        .p-dot { width: 10px; height: 10px; background: #ddd; border-radius: 50%; }
+        .prog-row { display: flex; align-items: center; justify-content: flex-start; gap: 5px; font-size: 0.8rem; margin: 4px 0; overflow-x: auto; }
+        .prog-name { font-weight: bold; white-space: nowrap; min-width: 60px; text-align: right; }
+        .p-dot { width: 10px; height: 10px; background: #ddd; border-radius: 50%; flex-shrink: 0; }
 
-        /* ====== 新規：下部UI（チャット・スタンプ横並び） ====== */
-        .bottom-ui { display: flex; gap: 10px; margin-top: 15px; border-top: 2px dashed #ddd; padding-top: 15px; align-items: stretch; }
-        
-        /* 左：チャットエリア */
-        #chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        #chat-box { flex: 1; height: 80px; overflow-y: auto; text-align: left; font-size: 0.85rem; padding: 8px; background: #f8f9fa; border-radius: 8px; margin-bottom: 6px; border: 1px solid #ddd; }
-        .chat-row { display: flex; gap: 4px; }
-        #chat-input { flex: 1; border: 1px solid #ccc; border-radius: 15px; padding: 8px 10px; font-size: 0.9rem; min-width: 0; margin: 0; }
-        .btn-chat { padding: 8px 12px; border-radius: 15px; font-size: 0.9rem; white-space: nowrap; }
-
-        /* 右：スタンプエリア（ブロック状に配置） */
-        .stamp-area { width: 90px; background: #eee; border-radius: 12px; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start; }
-        .stamp-btn { font-size: 1.3rem; cursor: pointer; border: none; background: white; border-radius: 8px; padding: 4px 0; transition: 0.1s; box-shadow: 0 2px 0 #ddd; display: flex; align-items: center; justify-content: center; }
+        /* レイアウト：横並び（チャット・スタンプ） */
+        .side-layout { display: flex; gap: 10px; margin-top: 15px; border-top: 2px dashed #ddd; padding-top: 15px; height: 150px; }
+        #chat-area { flex: 1.5; display: flex; flex-direction: column; min-width: 0; }
+        #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.8rem; padding: 8px; background: #f8f9fa; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 5px; }
+        .chat-input-row { display: flex; gap: 4px; }
+        #chat-input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9rem; margin: 0; width: auto; }
+        .stamp-area { flex: 1; background: #eee; border-radius: 12px; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .stamp-btn { font-size: 1.2rem; cursor: pointer; border: none; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ddd; }
         .stamp-btn:active { transform: translateY(2px); box-shadow: none; }
-        .stamp-btn.full { grid-column: span 2; font-size: 1.4rem; padding: 6px 0; }
-        
-        /* ポップアップ関連 */
-        #stamp-popup { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 10px 20px; border-radius: 30px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; pointer-events: none; font-size: 1.2rem; }
+
+        #stamp-popup { position: fixed; top: 25%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 12px 24px; border-radius: 30px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; pointer-events: none; font-size: 1.3rem; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
         #stamp-popup.show { transform: translate(-50%, -50%) scale(1); }
-        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 30px; border-radius: 15px; z-index: 9999; transition: 0.3s; font-size: 1.5rem; pointer-events: none; font-weight: bold; }
+        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 30px; border-radius: 15px; z-index: 9999; transition: 0.3s; font-size: 1.5rem; pointer-events: none; }
         #wrong-toast.show { transform: translate(-50%, -50%) scale(1); }
     </style>
 </head>
@@ -101,28 +89,24 @@
             </div>
         </div>
         <button id="btn-start" class="btn btn-host host-only">ゲームを開始！</button>
-        <p id="guest-msg" style="font-size:0.9rem; color:#666; margin-top:15px;">ホストの開始待ち...</p>
+        <p id="guest-msg" style="font-size:0.9rem; color:#666;">ホストの開始待ち...</p>
     </div>
 
     <div id="screen-game" class="screen panel">
         <div id="turn-msg">準備中...</div>
         <div id="heart-status" style="margin-bottom:10px;">
             <span id="heart-icons" style="color:var(--danger); font-size:1.2rem;">❤️</span>
-            <span id="heart-count" style="font-weight:bold; margin-left:5px; font-size:1.1rem;"></span>
+            <span id="heart-count" style="font-weight:bold; margin-left:5px;"></span>
         </div>
-        
         <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:10px;"></div>
-        
         <div id="progress-area"></div>
-
         <div id="keyboard" class="kb-container"></div>
         
-        <div class="bottom-ui">
+        <div class="side-layout">
             <div id="chat-area">
                 <div id="chat-box"></div>
-                <div class="chat-row">
-                    <input type="text" id="chat-input" placeholder="メッセージ">
-                    <button onclick="sendChat()" class="btn btn-primary btn-chat">送信</button>
+                <div class="chat-input-row">
+                    <input type="text" id="chat-input" placeholder="入力してEnter">
                 </div>
             </div>
             <div class="stamp-area">
@@ -130,7 +114,7 @@
                 <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
                 <button class="stamp-btn" onclick="sendStamp('😮')">😮</button>
                 <button class="stamp-btn" onclick="sendStamp('😭')">😭</button>
-                <button class="stamp-btn full" onclick="sendStamp('💢')">💢</button>
+                <button class="stamp-btn" style="grid-column:span 2" onclick="sendStamp('💢')">💢</button>
             </div>
         </div>
     </div>
@@ -188,7 +172,7 @@
         ];
 
         let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
-        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastStampTime = 0;
+        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastStampTime = 0, stampTimeout;
 
         const entry = (host) => {
             if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -204,7 +188,7 @@
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
             
             const joinTask = host ? set(roomRef, { 
-                status: "lobby", config: { g: Object.keys(dictionary)[0], h: parseInt(document.getElementById('select-h').value) || 17 }, 
+                status: "lobby", config: { g: Object.keys(dictionary)[0], h: 17 }, 
                 lastWrong: { char: "", time: 0 }, lastStamp: { emoji: "", sender: "", time: 0 }
             }) : Promise.resolve();
             
@@ -242,12 +226,11 @@
                     } else if(data.status === "playing") { renderUI(data); }
                 });
 
-                // チャットリスナー
                 onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
                     const box = document.getElementById('chat-box'); box.innerHTML = "";
                     const chats = snap.val();
                     if(chats) {
-                        Object.values(chats).slice(-30).forEach(c => {
+                        Object.values(chats).slice(-20).forEach(c => {
                             const d = document.createElement('div'); d.innerHTML = `<b>${c.sender}:</b> ${c.msg}`; box.appendChild(d);
                         });
                         box.scrollTop = box.scrollHeight;
@@ -256,11 +239,14 @@
             });
         };
 
-        window.sendChat = () => {
-            const i = document.getElementById('chat-input'); if(!i.value) return;
-            push(ref(db, `rooms/${roomKey}/chats`), { sender: myName, msg: i.value, time: Date.now() });
-            i.value = "";
-        };
+        // チャット：Enterキー送信対応
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') {
+                const i = document.getElementById('chat-input'); if(!i.value) return;
+                push(ref(db, `rooms/${roomKey}/chats`), { sender: myName, msg: i.value, time: Date.now() });
+                i.value = "";
+            }
+        });
 
         window.sendStamp = (emoji) => {
             update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() } });
@@ -268,10 +254,15 @@
 
         function showStampPopup(stamp) {
             const p = document.getElementById('stamp-popup');
-            p.innerText = `${stamp.sender}: ${stamp.emoji}`; p.classList.add('show');
-            const tones = { '👏': [800, 1000], '👍': [400, 600, 800], '😮': [600, 400], '😭': [300, 200], '💢': [150, 150] };
-            (tones[stamp.emoji] || [440]).forEach((f, i) => setTimeout(() => playTone(f, 0.2), i * 100));
-            setTimeout(() => p.classList.remove('show'), 1500);
+            clearTimeout(stampTimeout);
+            p.classList.remove('show');
+            setTimeout(() => {
+                p.innerText = `${stamp.sender}: ${stamp.emoji}`;
+                p.classList.add('show');
+                const tones = { '👏': [800, 1000], '👍': [400, 600, 800], '😮': [600, 400], '😭': [300, 200], '💢': [150, 150] };
+                (tones[stamp.emoji] || [440]).forEach((f, i) => setTimeout(() => playTone(f, 0.2), i * 100));
+                stampTimeout = setTimeout(() => p.classList.remove('show'), 2500);
+            }, 10);
         }
 
         document.getElementById('btn-create').onclick = () => entry(true);
@@ -323,7 +314,6 @@
             if(pList[currentData.turnIdx].id !== myId) return;
             const btn = document.getElementById("k-"+char);
             if(btn.classList.contains('wrong-all') || btn.classList.contains('my-correct')) return;
-            
             if(currentData.target.includes(char)) {
                 myGuessed.push(char);
                 playTone(880, 0.1); setTimeout(() => playTone(1320, 0.15), 100);
@@ -333,10 +323,8 @@
                 const wa = currentData.wrongAll || []; wa.push(char);
                 update(ref(db, `rooms/${roomKey}`), { wrongAll: wa, lastWrong: { char: char, time: Date.now() } });
             }
-            
             const next = (currentData.turnIdx + 1) % pList.length;
             update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
-            
             if(currentData.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
                 setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 500);
             }
@@ -353,7 +341,7 @@
             Object.entries(data.players).forEach(([pid, p]) => {
                 if(pid === myId) return;
                 const row = document.createElement('div'); row.className = "prog-row";
-                row.innerHTML = `<span style="width:60px; text-align:right; color:${p.color}; font-weight:bold; overflow:hidden;">${p.name.slice(0,4)}:</span>`;
+                row.innerHTML = `<span class="prog-name" style="color:${p.color}">${p.name}:</span>`;
                 data.target.split("").forEach(char => {
                     const dot = document.createElement('div');
                     dot.className = "p-dot";
@@ -366,7 +354,6 @@
             document.querySelectorAll('.key').forEach(k => { k.classList.remove('my-correct', 'wrong-all'); });
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
             myGuessed.forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
-            
             const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
             const curP = pList[data.turnIdx];
             const msg = document.getElementById('turn-msg');
