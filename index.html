@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル Pro v3</title>
+    <title>コトバ・サバイバル Pro v4</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -16,25 +16,28 @@
         .btn-primary { background: var(--main); color: white; }
         .btn-host { background: orange; color: white; width: 100%; margin-top: 15px; font-size: 1.1rem; }
 
-        /* キーボード：文字を少し小さく、5列グリッド */
+        /* カラーセレクター */
+        .color-picker { display: flex; justify-content: center; gap: 10px; margin: 15px 0; }
+        .color-dot { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; }
+        .color-dot.selected { border-color: #333; transform: scale(1.2); }
+
+        /* キーボード：文字をさらに小さく調整 */
         .kb-container { background: #e2e8f0; padding: 6px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-        .key { aspect-ratio: 1.25; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
+        .key { aspect-ratio: 1.25; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
         .key.my-correct { background: var(--sub) !important; color: white; box-shadow: 0 2px 0 #24b662; }
         .key.my-used { background: #94a3b8 !important; color: transparent; pointer-events: none; opacity: 0.2; box-shadow: none; }
         .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: 0 2px 0 #b91c1c; }
         .key.removed { background: #cbd5e0 !important; color: transparent; pointer-events: none; opacity: 0.4; box-shadow: none; }
+        .key-group-label { grid-column: span 5; font-size: 0.6rem; color: #718096; text-align: left; padding: 4px 0 0 2px; }
 
-        .key-group-label { grid-column: span 5; font-size: 0.65rem; color: #718096; text-align: left; padding: 4px 0 0 2px; }
-
-        /* 間違えた時の通知アニメーション */
-        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(255, 71, 87, 0.95); color: white; padding: 20px 40px; border-radius: 15px; font-size: 1.8rem; font-weight: bold; z-index: 3000; pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        /* ターンメッセージ：カラー枠 */
+        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; font-size: 1rem; transition: 0.3s; background: white; }
+        
+        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 40px; border-radius: 15px; font-size: 1.5rem; font-weight: bold; z-index: 3000; pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #wrong-toast.show { transform: translate(-50%, -50%) scale(1); }
 
         #word-display { display: flex; justify-content: center; gap: 4px; margin: 15px 0; flex-wrap: wrap; }
-        .slot { width: 28px; height: 38px; border-bottom: 3px solid #cbd5e0; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-        #turn-msg { padding: 8px; border-radius: 10px; margin-bottom: 10px; font-weight: bold; border: 2px solid transparent; font-size: 0.9rem; }
-        .my-turn-anim { background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .slot { width: 26px; height: 36px; border-bottom: 3px solid #cbd5e0; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
         .rank-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
         .host-only { display: none; }
@@ -42,10 +45,21 @@
 </head>
 <body>
 
-    <div id="wrong-toast">「あ」はありません！</div>
+    <div id="wrong-toast"></div>
 
     <div id="screen-entry" class="screen active panel">
-        <h1 style="color:var(--main); margin:0 0 20px 0;">コトバ・サバイバル</h1>
+        <h1 style="color:var(--main); margin:0 0 10px 0;">コトバ・サバイバル</h1>
+        <p style="font-size:0.8rem; margin-bottom:15px;">カラーを選んで参加しよう！</p>
+        
+        <div class="color-picker" id="color-picker">
+            <div class="color-dot selected" style="background:#4a90e2" data-color="#4a90e2"></div>
+            <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div>
+            <div class="color-dot" style="background:#2ed573" data-color="#2ed573"></div>
+            <div class="color-dot" style="background:#ffa502" data-color="#ffa502"></div>
+            <div class="color-dot" style="background:#af7ac5" data-color="#af7ac5"></div>
+            <div class="color-dot" style="background:#576574" data-color="#576574"></div>
+        </div>
+
         <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー"><br>
         <input type="text" id="input-room" placeholder="部屋ID" value="123"><br>
         <div style="margin-top:20px; display:flex; gap:10px;">
@@ -97,9 +111,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, onDisconnect, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Firebase Config (Asia Southeast 1)
         const firebaseConfig = {
             apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
             authDomain: "airhockey-1e251.firebaseapp.com",
@@ -113,8 +126,10 @@
         const db = getDatabase(app);
 
         // Sound Logic
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx;
         function playTone(freq, duration, type = "sine") {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = type; osc.frequency.value = freq;
@@ -148,30 +163,45 @@
         ];
 
         let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null, lastTurnId = "";
+        let selectedColor = "#4a90e2";
+
+        // カラー選択イベント
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.onclick = () => {
+                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+                dot.classList.add('selected');
+                selectedColor = dot.dataset.color;
+            };
+        });
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
 
-        document.getElementById('btn-create').onclick = () => entry(true);
-        document.getElementById('btn-join').onclick = () => entry(false);
+        // 入口ボタンの修正
+        document.getElementById('btn-create').addEventListener('click', () => entry(true));
+        document.getElementById('btn-join').addEventListener('click', () => entry(false));
 
-        function entry(host) {
+        async function entry(host) {
+            // AudioContextの有効化
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            audioCtx.resume();
+
             isHost = host;
             myName = document.getElementById('input-name').value || "プレイヤー";
             roomKey = "room_" + document.getElementById('input-room').value;
             myId = Math.random().toString(36).slice(2, 7);
+            
             showScreen('screen-lobby');
             if(host) {
                 document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
-                syncConfig();
             } else {
                 document.getElementById('guest-view').style.display = 'block';
             }
 
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
-            set(pRef, { name: myName, score: 0, guessedStr: "", host: host });
+            await set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: selectedColor });
             onDisconnect(pRef).remove();
 
             onValue(ref(db, `rooms/${roomKey}`), (snap) => {
@@ -185,13 +215,11 @@
                     document.getElementById('view-r').innerText = data.config.r;
                 }
                 
-                // ターンが変わった時に音を鳴らす
                 if(data.status === "playing" && players[data.turnIdx]?.id !== lastTurnId) {
                     lastTurnId = players[data.turnIdx]?.id;
                     if(lastTurnId === myId) sounds.turn();
                 }
 
-                // 不正解の同期（トースト表示）
                 if(currentData && data.wrongAll && data.wrongAll.length > (currentData.wrongAll?.length || 0)) {
                     const newWrong = data.wrongAll[data.wrongAll.length - 1];
                     showWrongToast(newWrong);
@@ -205,18 +233,8 @@
             });
         }
 
-        function syncConfig() {
-            if(!isHost) return;
-            const config = {
-                g: document.getElementById('select-g').value,
-                h: parseInt(document.getElementById('select-h').value),
-                r: parseInt(document.getElementById('select-r').value)
-            };
-            update(ref(db, `rooms/${roomKey}`), { config });
-        }
-
         function launchGame() {
-            const conf = currentData.config;
+            const conf = currentData.config || {g: "たべもの", h: 17, r: 10};
             const target = dictionary[conf.g][Math.floor(Math.random() * dictionary[conf.g].length)];
             const allChars = kanaGroups.map(g => g.chars).join("").split("");
             let removable = allChars.filter(c => !target.includes(c));
@@ -228,7 +246,7 @@
             });
             updates['status'] = "playing"; updates['target'] = target;
             updates['turnIdx'] = 0; updates['wrongAll'] = [];
-            updates['config/removed'] = removed;
+            updates['config'] = { ...conf, removed: removed };
             update(ref(db, `rooms/${roomKey}`), updates);
         }
 
@@ -277,7 +295,6 @@
                 const wa = currentData.wrongAll || [];
                 if(!wa.includes(char)) wa.push(char);
                 update(ref(db, `rooms/${roomKey}`), { wrongAll: wa });
-                // 音とトーストはonValueで全員に飛ぶ
             }
 
             update(ref(db, `rooms/${roomKey}/players/${myId}`), { 
@@ -305,10 +322,16 @@
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add("wrong-all"));
 
             const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
-            const isMy = (pList[data.turnIdx]?.id === myId);
+            const currentPlayer = pList[data.turnIdx];
+            const isMy = (currentPlayer?.id === myId);
             const msg = document.getElementById('turn-msg');
-            msg.innerText = isMy ? "★ あなたの番です ★" : `${pList[data.turnIdx]?.name}の番...`;
+            
+            // 枠の色をプレイヤーのカラーに変更
+            msg.innerText = isMy ? "★ あなたの番です ★" : `${currentPlayer?.name}の番...`;
+            msg.style.borderColor = currentPlayer?.color || "#ddd";
+            msg.style.color = currentPlayer?.color || "#333";
             msg.className = isMy ? "my-turn-anim" : "";
+            
             document.getElementById('heart-bar').innerText = "❤️".repeat(Math.max(0, myHearts));
         }
 
@@ -325,14 +348,13 @@
             sorted.forEach((p, i) => {
                 const pG = p.guessedStr ? p.guessedStr.split(",") : [];
                 const progress = data.target.split("").map(c => pG.includes(c)?c:"_").join("");
-                area.innerHTML += `<div class="rank-row"><span><b>${i+1}位: ${p.name}</b></span><span style="font-family:monospace; color:#666;">${progress}</span><span style="color:var(--main)">${p.score}字</span></div>`;
+                area.innerHTML += `<div class="rank-row"><span style="color:${p.color}"><b>${i+1}位: ${p.name}</b></span><span style="font-family:monospace; color:#666;">${progress}</span><span style="color:var(--main)">${p.score}字</span></div>`;
             });
         }
 
-        // Host settings sync
-        document.getElementById('select-g').onchange = syncConfig;
-        document.getElementById('select-h').onchange = syncConfig;
-        document.getElementById('select-r').onchange = syncConfig;
+        document.getElementById('select-g').onchange = () => { if(isHost) update(ref(db, `rooms/${roomKey}/config`), {g: document.getElementById('select-g').value}); };
+        document.getElementById('select-h').onchange = () => { if(isHost) update(ref(db, `rooms/${roomKey}/config`), {h: parseInt(document.getElementById('select-h').value)}); };
+        document.getElementById('select-r').onchange = () => { if(isHost) update(ref(db, `rooms/${roomKey}/config`), {r: parseInt(document.getElementById('select-r').value)}); };
     </script>
 </body>
 </html>
