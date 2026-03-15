@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル Pro v6</title>
+    <title>コトバ・サバイバル Pro v7</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -26,7 +26,6 @@
         .kb-container { background: #e2e8f0; padding: 6px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
         .key { aspect-ratio: 1.2; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
         .key.my-correct { background: var(--sub) !important; color: white; }
-        .key.my-used { background: #94a3b8 !important; color: transparent; pointer-events: none; opacity: 0.2; }
         .key.wrong-all { background: var(--danger) !important; color: white; }
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; }
         .key-group-label { grid-column: span 5; font-size: 0.65rem; color: #718096; text-align: left; padding: 4px 2px 0; }
@@ -34,8 +33,7 @@
         #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; }
         #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 30px; border-radius: 15px; z-index: 9999; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-size: 1.5rem; }
         #wrong-toast.show { transform: translate(-50%, -50%) scale(1); }
-        .slot { width: 28px; height: 38px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
-        .rank-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; }
+        .slot { width: 26px; height: 36px; border-bottom: 3px solid #ccc; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
         .host-only { display: none; }
     </style>
 </head>
@@ -55,7 +53,6 @@
 
     <div id="screen-lobby" class="screen panel">
         <h2>待機ロビー</h2>
-        <p style="font-size:0.8rem;">好きな色を選んでください</p>
         <div class="color-picker" id="lobby-color-picker">
             <div class="color-dot" style="background:#4a90e2" data-color="#4a90e2"></div>
             <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div>
@@ -65,7 +62,7 @@
             <div class="color-dot" style="background:#576574" data-color="#576574"></div>
         </div>
         <div style="text-align:left; background:#f9f9f9; padding:15px; border-radius:12px;">
-            <p><b>参加メンバー:</b> <span id="lobby-members">---</span></p>
+            <p><b>メンバー:</b> <span id="lobby-members">---</span></p>
             <div class="host-only">
                 <hr>
                 <label>ジャンル:</label><br>
@@ -77,11 +74,11 @@
             </div>
         </div>
         <button id="btn-start" class="btn btn-host host-only">ゲームを開始！</button>
-        <p id="guest-msg" class="guest-info" style="font-size:0.8rem; color:#666;">ホストが開始するのを待っています...</p>
+        <p id="guest-msg" style="font-size:0.8rem; color:#666;">ホストの開始待ち...</p>
     </div>
 
     <div id="screen-game" class="screen panel">
-        <div id="turn-msg">読み込み中...</div>
+        <div id="turn-msg">準備中...</div>
         <div id="heart-bar" style="color:var(--danger); font-size:1rem; margin-bottom:10px;"></div>
         <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:15px;"></div>
         <div id="keyboard" class="kb-container"></div>
@@ -92,7 +89,7 @@
         <h2 id="res-word" style="color:var(--main)"></h2>
         <div id="res-ranking"></div>
         <button id="btn-replay" class="btn btn-host host-only">もう一度遊ぶ</button>
-        <button onclick="location.reload()" class="btn btn-primary" style="width:100%; margin-top:10px;">終了する</button>
+        <button onclick="location.reload()" class="btn btn-primary" style="width:100%; margin-top:10px;">終了</button>
     </div>
 
     <script type="module">
@@ -101,10 +98,10 @@
 
         const firebaseConfig = {
             apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
-            authDomain: "airhockey-1e251.firebaseapp.com",
+            authDomain: "airhockey-1e251.firebaseapp.app",
             projectId: "airhockey-1e251",
             databaseURL: "https://airhockey-1e251-default-rtdb.asia-southeast1.firebasedatabase.app",
-            storageBucket: "airhockey-1e251.firebasestorage.app",
+            storageBucket: "airhockey-1e251.appspot.com",
             messagingSenderId: "15014810791",
             appId: "1:15014810791:web:7dc84e7143d495cf97b782"
         };
@@ -119,18 +116,12 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = type; osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(); osc.stop(audioCtx.currentTime + duration);
             } catch(e) {}
         }
-        const sounds = {
-            correct: () => { playTone(880, 0.1); setTimeout(() => playTone(1320, 0.15), 100); },
-            wrong: () => playTone(220, 0.3, "square"),
-            turn: () => playTone(440, 0.05, "triangle"),
-            win: () => [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 0.3), i * 150))
-        };
 
         const dictionary = {
             "たべもの": ["おむらいす", "めろんぱん", "そふとくりーむ", "たこやき", "かれーらいす"],
@@ -150,91 +141,98 @@
         let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
         let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0;
 
-        const entry = async (host) => {
+        // --- 修正されたエントリー関数 ---
+        const entry = (host) => {
+            // 音声をまず有効化
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            audioCtx.resume();
+
             isHost = host;
             myName = document.getElementById('input-name').value || "ななし";
-            roomKey = "room_" + document.getElementById('input-room').value;
+            roomKey = "room_" + (document.getElementById('input-room').value || "123");
             myId = Math.random().toString(36).slice(2, 7);
             
             showScreen('screen-lobby');
-            if(host) {
-                document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
-                // ホストが部屋を作るときに初期状態をリセット
-                await set(ref(db, `rooms/${roomKey}`), { 
-                    status: "lobby", 
-                    config: { g: "たべもの", h: 17, r: 10 },
-                    lastWrong: { char: "", time: 0 }
-                });
-            }
+            if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
 
+            const roomRef = ref(db, `rooms/${roomKey}`);
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
-            set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
-            onDisconnect(pRef).remove();
 
-            onValue(ref(db, `rooms/${roomKey}`), (snap) => {
-                const data = snap.val(); if(!data) return;
-                const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
-                
-                document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
-                updateColorDots(players);
+            // ホストなら部屋をクリアしてから入る、ゲストならそのまま入る
+            const joinTask = host ? set(roomRef, { 
+                status: "lobby", 
+                config: { g: "たべもの", h: 17, r: 10 },
+                lastWrong: { char: "", time: 0 }
+            }) : Promise.resolve();
 
-                // ゲーム中のリアルタイム処理
-                if(data.status === "playing") {
-                    // ターンの音
-                    const currentPlayer = players[data.turnIdx];
-                    if(currentPlayer?.id !== lastTurnId) {
-                        lastTurnId = currentPlayer?.id;
-                        if(lastTurnId === myId) sounds.turn();
+            joinTask.then(() => {
+                set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
+                onDisconnect(pRef).remove();
+
+                onValue(roomRef, (snap) => {
+                    const data = snap.val(); if(!data) return;
+                    currentData = data;
+                    const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
+                    
+                    document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
+                    updateColorDots(players);
+
+                    if(data.status === "playing") {
+                        const currentPlayer = players[data.turnIdx];
+                        if(currentPlayer?.id !== lastTurnId) {
+                            lastTurnId = currentPlayer?.id;
+                            if(lastTurnId === myId) playTone(440, 0.05, "triangle");
+                        }
+                        if(data.lastWrong && data.lastWrong.time > lastWrongTime) {
+                            lastWrongTime = data.lastWrong.time;
+                            showWrongToast(data.lastWrong.char);
+                            playTone(220, 0.3, "square");
+                        }
                     }
-                    // ミスの通知 (lastWrongのtimeが変わった瞬間だけ表示)
-                    if(data.lastWrong && data.lastWrong.time > lastWrongTime) {
-                        lastWrongTime = data.lastWrong.time;
-                        showWrongToast(data.lastWrong.char);
-                        sounds.wrong();
-                    }
-                }
 
-                // 画面遷移の同期
-                if(data.status !== lastStatus) {
-                    lastStatus = data.status;
-                    if(data.status === "playing") initGame(data);
-                    else if(data.status === "finished") showResult(data, players);
-                    else if(data.status === "lobby") showScreen('screen-lobby');
-                } else if(data.status === "playing") {
-                    renderUI(data);
-                }
-                currentData = data;
+                    if(data.status !== lastStatus) {
+                        lastStatus = data.status;
+                        if(data.status === "playing") initGame(data);
+                        else if(data.status === "finished") showResult(data, players);
+                        else if(data.status === "lobby") {
+                            showScreen('screen-lobby');
+                            lastStatus = "lobby"; // リセット用
+                        }
+                    } else if(data.status === "playing") {
+                        renderUI(data);
+                    }
+                });
             });
         };
 
         document.getElementById('btn-create').onclick = () => entry(true);
         document.getElementById('btn-join').onclick = () => entry(false);
 
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
         function updateColorDots(players) {
             const takenColors = players.filter(p => p.id !== myId).map(p => p.color);
             document.querySelectorAll('.color-dot').forEach(dot => {
                 const c = dot.dataset.color;
-                dot.classList.toggle('taken', takenColors.includes(c));
-                const myColor = players.find(p => p.id === myId)?.color;
-                dot.classList.toggle('selected', myColor === c);
-                dot.onclick = () => {
-                    if(!dot.classList.contains('taken')) {
-                        update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c });
-                    }
-                };
+                const isTaken = takenColors.includes(c);
+                const isMine = players.find(p => p.id === myId)?.color === c;
+                dot.classList.toggle('taken', isTaken);
+                dot.classList.toggle('selected', isMine);
+                dot.onclick = () => { if(!isTaken) update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c }); };
             });
         }
 
         function launchGame() {
+            if(!isHost) return;
             const target = dictionary[document.getElementById('select-g').value][Math.floor(Math.random() * 5)];
             const allChars = kanaGroups.map(g => g.chars).join("").split("");
             const removed = allChars.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
             
             const updates = {};
-            Object.keys(currentData.players).forEach(pid => {
-                updates[`players/${pid}/score`] = 0;
-                updates[`players/${pid}/guessedStr`] = "";
-            });
+            Object.keys(currentData.players).forEach(pid => { updates[`players/${pid}/score`] = 0; updates[`players/${pid}/guessedStr`] = ""; });
             updates['status'] = "playing"; 
             updates['target'] = target;
             updates['turnIdx'] = 0; 
@@ -276,7 +274,7 @@
 
             if(currentData.target.includes(char)) {
                 myGuessed.push(char);
-                sounds.correct();
+                playTone(880, 0.1); setTimeout(() => playTone(1320, 0.15), 100);
                 update(ref(db, `rooms/${roomKey}/players/${myId}`), { score: myGuessed.length, guessedStr: myGuessed.join(",") });
             } else {
                 myHearts--;
@@ -284,13 +282,11 @@
                 wa.push(char);
                 update(ref(db, `rooms/${roomKey}`), { 
                     wrongAll: wa,
-                    lastWrong: { char: char, time: Date.now() } // ミス通知用のタイムスタンプ
+                    lastWrong: { char: char, time: Date.now() }
                 });
             }
-
             const next = (currentData.turnIdx + 1) % pList.length;
             update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
-
             if(currentData.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
                 setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 1000);
             }
@@ -306,13 +302,12 @@
             });
             myGuessed.forEach(c => document.getElementById("k-"+c)?.classList.add("my-correct"));
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add("wrong-all"));
-
             const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
             const curP = pList[data.turnIdx];
             const msg = document.getElementById('turn-msg');
             msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
-            msg.style.borderColor = curP?.color || "#ddd";
-            msg.style.color = curP?.color || "#333";
+            msg.style.borderColor = curP?.color;
+            msg.style.color = curP?.color;
             document.getElementById('heart-bar').innerText = "❤️".repeat(Math.max(0, myHearts));
         }
 
@@ -331,10 +326,10 @@
             area.innerHTML = "";
             const sorted = players.sort((a,b) => b.score - a.score);
             const iWon = data.target.split("").every(c => myGuessed.includes(c));
-            if(iWon) sounds.win();
+            if(iWon) [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 0.3), i * 150));
             document.getElementById('res-status').innerText = iWon ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
             sorted.forEach((p, i) => {
-                area.innerHTML += `<div class="rank-row"><span style="color:${p.color}"><b>${i+1}位: ${p.name}</b></span><span>${p.score}文字</span></div>`;
+                area.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;"><span style="color:${p.color}"><b>${i+1}位: ${p.name}</b></span><span>${p.score}文字</span></div>`;
             });
         }
     </script>
