@@ -3,128 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v22</title>
+    <title>コトバ・サバイバル v23</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
-        .panel { background: white; padding: 20px; border-radius: 20px; width: 94%; max-width: 500px; margin: 15px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.05); box-sizing: border-box; position: relative; }
+        
+        /* 全体コンテナ */
+        .game-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 15px; padding: 10px; max-width: 1000px; margin: 0 auto; }
+        
+        /* 左右の固定エリア（赤丸の位置） */
+        .side-panel { width: 220px; flex-shrink: 0; margin-top: 15px; position: sticky; top: 15px; }
+        .main-column { flex: 1; max-width: 480px; min-width: 320px; }
+
+        .panel { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); box-sizing: border-box; margin-bottom: 15px; }
         .screen { display: none; }
         .active { display: block; }
-        input, select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; width: 80%; margin: 5px 0; box-sizing: border-box; }
+        
+        input, select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; width: 100%; margin: 5px 0; box-sizing: border-box; }
         .btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; }
         .btn-primary { background: var(--main); color: white; }
         .btn-host { background: orange; color: white; width: 100%; margin-top: 15px; font-size: 1.2rem; }
-        .color-picker { display: flex; justify-content: center; gap: 10px; margin: 10px 0; padding: 10px; background: #eee; border-radius: 12px; }
-        .color-dot { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; position: relative; }
-        .color-dot.selected { border-color: #333; transform: scale(1.1); }
-        .color-dot.taken { opacity: 0.2; cursor: not-allowed; pointer-events: none; }
-        .color-dot.taken::after { content: "×"; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
         
-        /* v14準拠 5列キーボード */
+        /* 5列キーボード（絶対維持） */
         .kb-container { background: #e2e8f0; padding: 8px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .key { aspect-ratio: 1.1; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
         .key.my-correct { background: var(--sub) !important; color: white; box-shadow: none; }
         .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: none; }
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; box-shadow: none; }
         .key-group-label { grid-column: span 5; font-size: 0.75rem; color: #718096; text-align: left; padding: 6px 2px 2px; font-weight: bold; }
+
+        /* サイドのチャット・スタンプ */
+        #chat-area { display: flex; flex-direction: column; height: 350px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 8px; padding: 8px; margin-bottom: 8px; border: 1px solid #eee; }
+        #chat-input { padding: 10px; border-radius: 15px; border: 1px solid #ccc; font-size: 0.9rem; }
         
-        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; font-size: 1.1rem; }
-        .slot { width: 28px; height: 38px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
-        .host-only { display: none; }
-
-        /* 進捗状況（名前制限解除） */
-        #progress-area { margin-bottom: 15px; background: #f9f9f9; padding: 8px; border-radius: 10px; }
-        .prog-row { display: flex; align-items: center; justify-content: flex-start; gap: 5px; font-size: 0.8rem; margin: 4px 0; overflow-x: auto; }
-        .prog-name { font-weight: bold; white-space: nowrap; min-width: 60px; text-align: right; }
-        .p-dot { width: 10px; height: 10px; background: #ddd; border-radius: 50%; flex-shrink: 0; }
-
-        /* レイアウト：横並び（チャット・スタンプ） */
-        .side-layout { display: flex; gap: 10px; margin-top: 15px; border-top: 2px dashed #ddd; padding-top: 15px; height: 150px; }
-        #chat-area { flex: 1.5; display: flex; flex-direction: column; min-width: 0; }
-        #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.8rem; padding: 8px; background: #f8f9fa; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 5px; }
-        .chat-input-row { display: flex; gap: 4px; }
-        #chat-input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9rem; margin: 0; width: auto; }
-        .stamp-area { flex: 1; background: #eee; border-radius: 12px; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-        .stamp-btn { font-size: 1.2rem; cursor: pointer; border: none; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ddd; }
+        .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .stamp-btn { font-size: 1.5rem; padding: 10px 0; border: none; background: #f0f3f5; border-radius: 12px; cursor: pointer; transition: 0.1s; box-shadow: 0 3px 0 #ddd; }
         .stamp-btn:active { transform: translateY(2px); box-shadow: none; }
 
-        #stamp-popup { position: fixed; top: 25%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 12px 24px; border-radius: 30px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; pointer-events: none; font-size: 1.3rem; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        /* その他UI部品 */
+        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; }
+        .slot { width: 28px; height: 38px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
+        #progress-area { margin-bottom: 15px; background: #f9f9f9; padding: 8px; border-radius: 10px; }
+        .prog-row { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; margin: 4px 0; }
+        .prog-name { font-weight: bold; white-space: nowrap; min-width: 60px; text-align: right; }
+        .p-dot { width: 10px; height: 10px; background: #ddd; border-radius: 50%; flex-shrink: 0; }
+        
+        #stamp-popup { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 30px; border-radius: 40px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; pointer-events: none; font-size: 1.5rem; }
         #stamp-popup.show { transform: translate(-50%, -50%) scale(1); }
-        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 30px; border-radius: 15px; z-index: 9999; transition: 0.3s; font-size: 1.5rem; pointer-events: none; }
-        #wrong-toast.show { transform: translate(-50%, -50%) scale(1); }
+        
+        @media (max-width: 900px) {
+            .game-wrapper { flex-direction: column; align-items: center; }
+            .side-panel { width: 94%; max-width: 500px; position: static; order: 2; }
+            .main-column { order: 1; }
+        }
     </style>
 </head>
 <body>
 
     <div id="stamp-popup"></div>
-    <div id="wrong-toast"></div>
+    <div id="wrong-toast" style="position:fixed; top:40%; left:50%; transform:translate(-50%,-50%) scale(0); background:rgba(0,0,0,0.8); color:white; padding:20px; border-radius:15px; z-index:999; transition:0.3s; pointer-events:none;"></div>
 
-    <div id="screen-entry" class="screen active panel">
-        <h1 style="color:var(--main)">コトバ・サバイバル</h1>
-        <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー"><br>
-        <input type="text" id="input-room" placeholder="部屋ID" value="123"><br>
-        <div style="margin-top:20px; display:flex; gap:10px;">
-            <button id="btn-create" class="btn btn-primary" style="flex:1">部屋を作る</button>
-            <button id="btn-join" class="btn btn-primary" style="flex:1; background:var(--sub)">参加する</button>
-        </div>
-    </div>
-
-    <div id="screen-lobby" class="screen panel">
-        <h2>待機ロビー</h2>
-        <div class="color-picker" id="lobby-color-picker">
-            <div class="color-dot" style="background:#4a90e2" data-color="#4a90e2"></div>
-            <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div>
-            <div class="color-dot" style="background:#2ed573" data-color="#2ed573"></div>
-            <div class="color-dot" style="background:#ffa502" data-color="#ffa502"></div>
-            <div class="color-dot" style="background:#af7ac5" data-color="#af7ac5"></div>
-            <div class="color-dot" style="background:#576574" data-color="#576574"></div>
-        </div>
-        <div style="text-align:left; background:#f9f9f9; padding:15px; border-radius:12px;">
-            <p><b>メンバー:</b> <span id="lobby-members">---</span></p>
-            <div class="host-only">
-                <hr>
-                <label>ジャンル:</label><br>
-                <select id="select-g" style="width:100%;"></select><br>
-                <label>ライフ: <input type="number" id="select-h" value="17" style="width:70px;"></label>
-            </div>
-        </div>
-        <button id="btn-start" class="btn btn-host host-only">ゲームを開始！</button>
-        <p id="guest-msg" style="font-size:0.9rem; color:#666;">ホストの開始待ち...</p>
-    </div>
-
-    <div id="screen-game" class="screen panel">
-        <div id="turn-msg">準備中...</div>
-        <div id="heart-status" style="margin-bottom:10px;">
-            <span id="heart-icons" style="color:var(--danger); font-size:1.2rem;">❤️</span>
-            <span id="heart-count" style="font-weight:bold; margin-left:5px;"></span>
-        </div>
-        <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:10px;"></div>
-        <div id="progress-area"></div>
-        <div id="keyboard" class="kb-container"></div>
-        
-        <div class="side-layout">
+    <div class="game-wrapper">
+        <div class="side-panel" id="side-left" style="display:none;">
             <div id="chat-area">
                 <div id="chat-box"></div>
-                <div class="chat-input-row">
-                    <input type="text" id="chat-input" placeholder="入力してEnter">
+                <input type="text" id="chat-input" placeholder="Enterで送信">
+            </div>
+        </div>
+
+        <div class="main-column">
+            <div id="screen-entry" class="screen active panel">
+                <h1 style="color:var(--main)">コトバ・サバイバル</h1>
+                <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー">
+                <input type="text" id="input-room" placeholder="部屋ID" value="123">
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button id="btn-create" class="btn btn-primary" style="flex:1">作成</button>
+                    <button id="btn-join" class="btn btn-primary" style="flex:1; background:var(--sub)">参加</button>
                 </div>
             </div>
-            <div class="stamp-area">
+
+            <div id="screen-lobby" class="screen panel">
+                <h2>待機ロビー</h2>
+                <div class="color-picker" id="lobby-color-picker" style="display:flex; justify-content:center; gap:8px; margin-bottom:15px;">
+                    <div class="color-dot" style="background:#4a90e2; width:30px; height:30px; border-radius:50%; cursor:pointer;" data-color="#4a90e2"></div>
+                    <div class="color-dot" style="background:#ff4757; width:30px; height:30px; border-radius:50%; cursor:pointer;" data-color="#ff4757"></div>
+                    <div class="color-dot" style="background:#2ed573; width:30px; height:30px; border-radius:50%; cursor:pointer;" data-color="#2ed573"></div>
+                    <div class="color-dot" style="background:#ffa502; width:30px; height:30px; border-radius:50%; cursor:pointer;" data-color="#ffa502"></div>
+                </div>
+                <p>メンバー: <span id="lobby-members">---</span></p>
+                <div class="host-only" style="display:none;">
+                    <select id="select-g"></select>
+                    <input type="number" id="select-h" value="17" style="width:100px;">
+                </div>
+                <button id="btn-start" class="btn btn-host host-only" style="display:none;">開始！</button>
+            </div>
+
+            <div id="screen-game" class="screen panel">
+                <div id="turn-msg">準備中...</div>
+                <div id="heart-status"><span id="heart-icons">❤️</span><span id="heart-count"></span></div>
+                <div id="word-display" style="display:flex; justify-content:center; margin:15px 0;"></div>
+                <div id="progress-area"></div>
+                <div id="keyboard" class="kb-container"></div>
+            </div>
+
+            <div id="screen-result" class="screen panel">
+                <h1 id="res-status">RESULT</h1>
+                <h2 id="res-word"></h2>
+                <div id="res-ranking"></div>
+                <button id="btn-replay" class="btn btn-host host-only" style="display:none;">もう一度</button>
+            </div>
+        </div>
+
+        <div class="side-panel" id="side-right" style="display:none;">
+            <div class="stamp-grid">
                 <button class="stamp-btn" onclick="sendStamp('👏')">👏</button>
                 <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
                 <button class="stamp-btn" onclick="sendStamp('😮')">😮</button>
                 <button class="stamp-btn" onclick="sendStamp('😭')">😭</button>
-                <button class="stamp-btn" style="grid-column:span 2" onclick="sendStamp('💢')">💢</button>
+                <button class="stamp-btn" style="grid-column: span 2" onclick="sendStamp('💢')">💢</button>
             </div>
         </div>
-    </div>
-
-    <div id="screen-result" class="screen panel">
-        <h1 id="res-status" style="font-size:2.5rem;">RESULT</h1>
-        <h2 id="res-word" style="color:var(--main); background:#eee; padding:15px; border-radius:10px;"></h2>
-        <div id="res-ranking" style="text-align:left; margin:20px 0;"></div>
-        <button id="btn-replay" class="btn btn-host host-only">もう一度遊ぶ</button>
-        <button onclick="location.reload()" class="btn btn-primary" style="width:100%; margin-top:15px;">終了</button>
     </div>
 
     <script type="module">
@@ -132,12 +131,7 @@
         import { getDatabase, ref, set, onValue, update, onDisconnect, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { dictionary } from "./questions.js";
 
-        const selectG = document.getElementById('select-g');
-        Object.keys(dictionary).forEach(genre => {
-            const opt = document.createElement('option');
-            opt.value = genre; opt.innerText = genre; selectG.appendChild(opt);
-        });
-
+        // Firebase設定（既存のまま）
         const firebaseConfig = {
             apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
             authDomain: "airhockey-1e251.firebaseapp.app",
@@ -147,20 +141,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let audioCtx;
-        function playTone(freq, duration, type = "sine") {
-            try {
-                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if(audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = type; osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(); osc.stop(audioCtx.currentTime + duration);
-            } catch(e) {}
-        }
+        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
+        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastStampTime = 0;
 
         const kanaGroups = [
             { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" },
@@ -171,75 +153,61 @@
             { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
         ];
 
-        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
-        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastStampTime = 0, stampTimeout;
+        // 共通：チャットとスタンプの表示
+        function showSidePanels() {
+            document.getElementById('side-left').style.display = 'block';
+            document.getElementById('side-right').style.display = 'block';
+        }
 
         const entry = (host) => {
-            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            audioCtx.resume();
             isHost = host;
             myName = document.getElementById('input-name').value || "ななし";
             roomKey = "room_" + (document.getElementById('input-room').value || "123");
             myId = Math.random().toString(36).slice(2, 7);
+            
             showScreen('screen-lobby');
+            showSidePanels(); // 待機画面でも表示
             if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
             
             const roomRef = ref(db, `rooms/${roomKey}`);
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
             
-            const joinTask = host ? set(roomRef, { 
-                status: "lobby", config: { g: Object.keys(dictionary)[0], h: 17 }, 
-                lastWrong: { char: "", time: 0 }, lastStamp: { emoji: "", sender: "", time: 0 }
-            }) : Promise.resolve();
-            
-            joinTask.then(() => {
-                set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
-                onDisconnect(pRef).remove();
-                
-                onValue(roomRef, (snap) => {
-                    const data = snap.val(); if(!data) return;
-                    currentData = data;
-                    const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
-                    document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
-                    updateColorDots(players);
-                    
-                    if(data.status === "playing") {
-                        if(data.lastStamp && data.lastStamp.time > lastStampTime) {
-                            lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp);
-                        }
-                        const currentPlayer = players[data.turnIdx];
-                        if(currentPlayer?.id !== lastTurnId) {
-                            lastTurnId = currentPlayer?.id;
-                            if(lastTurnId === myId) playTone(440, 0.05, "triangle");
-                        }
-                        if(data.lastWrong && data.lastWrong.time > lastWrongTime) {
-                            lastWrongTime = data.lastWrong.time;
-                            showWrongToast(data.lastWrong.char);
-                            playTone(220, 0.3, "square");
-                        }
-                    }
-                    if(data.status !== lastStatus) {
-                        lastStatus = data.status;
-                        if(data.status === "playing") { lastStampTime = 0; initGame(data); }
-                        else if(data.status === "finished") showResult(data, players);
-                        else if(data.status === "lobby") showScreen('screen-lobby');
-                    } else if(data.status === "playing") { renderUI(data); }
-                });
+            if(host) set(roomRef, { status: "lobby", lastStamp: {time:0} });
+            set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
+            onDisconnect(pRef).remove();
 
-                onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
-                    const box = document.getElementById('chat-box'); box.innerHTML = "";
-                    const chats = snap.val();
-                    if(chats) {
-                        Object.values(chats).slice(-20).forEach(c => {
-                            const d = document.createElement('div'); d.innerHTML = `<b>${c.sender}:</b> ${c.msg}`; box.appendChild(d);
-                        });
-                        box.scrollTop = box.scrollHeight;
-                    }
-                });
+            onValue(roomRef, (snap) => {
+                const data = snap.val(); if(!data) return;
+                currentData = data;
+                const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
+                document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
+                
+                if(data.lastStamp && data.lastStamp.time > lastStampTime) {
+                    lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp);
+                }
+                
+                if(data.status !== lastStatus) {
+                    lastStatus = data.status;
+                    if(data.status === "playing") initGame(data);
+                    else if(data.status === "finished") showResult(data, players);
+                    else if(data.status === "lobby") showScreen('screen-lobby');
+                } else if(data.status === "playing") { renderUI(data); }
+            });
+
+            // チャット受信
+            onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
+                const box = document.getElementById('chat-box'); box.innerHTML = "";
+                const chats = snap.val();
+                if(chats) {
+                    Object.values(chats).slice(-20).forEach(c => {
+                        const d = document.createElement('div'); d.innerHTML = `<b>${c.sender}:</b> ${c.msg}`; box.appendChild(d);
+                    });
+                    box.scrollTop = box.scrollHeight;
+                }
             });
         };
 
-        // チャット：Enterキー送信対応
+        // エンターキー送信
         document.getElementById('chat-input').addEventListener('keypress', (e) => {
             if(e.key === 'Enter') {
                 const i = document.getElementById('chat-input'); if(!i.value) return;
@@ -254,47 +222,17 @@
 
         function showStampPopup(stamp) {
             const p = document.getElementById('stamp-popup');
-            clearTimeout(stampTimeout);
-            p.classList.remove('show');
-            setTimeout(() => {
-                p.innerText = `${stamp.sender}: ${stamp.emoji}`;
-                p.classList.add('show');
-                const tones = { '👏': [800, 1000], '👍': [400, 600, 800], '😮': [600, 400], '😭': [300, 200], '💢': [150, 150] };
-                (tones[stamp.emoji] || [440]).forEach((f, i) => setTimeout(() => playTone(f, 0.2), i * 100));
-                stampTimeout = setTimeout(() => p.classList.remove('show'), 2500);
-            }, 10);
+            p.innerText = `${stamp.sender}: ${stamp.emoji}`;
+            p.classList.add('show');
+            setTimeout(() => p.classList.remove('show'), 1500); // 1500msに戻す
         }
 
         document.getElementById('btn-create').onclick = () => entry(true);
         document.getElementById('btn-join').onclick = () => entry(false);
 
-        function updateColorDots(players) {
-            const takenColors = players.filter(p => p.id !== myId).map(p => p.color);
-            document.querySelectorAll('.color-dot').forEach(dot => {
-                const c = dot.dataset.color;
-                dot.classList.toggle('taken', takenColors.includes(c));
-                dot.classList.toggle('selected', players.find(p => p.id === myId)?.color === c);
-                dot.onclick = () => { if(!takenColors.includes(c)) update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c }); };
-            });
-        }
-
-        function launchGame() {
-            const genre = document.getElementById('select-g').value;
-            const targetList = dictionary[genre];
-            const target = targetList[Math.floor(Math.random() * targetList.length)];
-            const allChars = kanaGroups.map(g => g.chars).join("").split("");
-            const removed = allChars.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
-            const updates = {};
-            Object.keys(currentData.players).forEach(pid => { updates[`players/${pid}/score`] = 0; updates[`players/${pid}/guessedStr`] = ""; });
-            updates['status'] = "playing"; updates['target'] = target; updates['turnIdx'] = 0; updates['wrongAll'] = [];
-            updates['config'] = { g: genre, h: parseInt(document.getElementById('select-h').value), removed };
-            update(ref(db, `rooms/${roomKey}`), updates);
-        }
-        document.getElementById('btn-start').onclick = launchGame;
-        document.getElementById('btn-replay').onclick = launchGame;
-
+        // ゲーム初期化（キーボード生成など）
         function initGame(data) {
-            myGuessed = []; myHearts = data.config.h; lastWrongTime = 0;
+            myGuessed = []; myHearts = data.config.h;
             showScreen('screen-game');
             const kb = document.getElementById('keyboard'); kb.innerHTML = "";
             kanaGroups.forEach(group => {
@@ -314,17 +252,16 @@
             if(pList[currentData.turnIdx].id !== myId) return;
             const btn = document.getElementById("k-"+char);
             if(btn.classList.contains('wrong-all') || btn.classList.contains('my-correct')) return;
+            
             if(currentData.target.includes(char)) {
                 myGuessed.push(char);
-                playTone(880, 0.1); setTimeout(() => playTone(1320, 0.15), 100);
                 update(ref(db, `rooms/${roomKey}/players/${myId}`), { score: myGuessed.length, guessedStr: myGuessed.join(",") });
             } else {
                 myHearts--;
                 const wa = currentData.wrongAll || []; wa.push(char);
                 update(ref(db, `rooms/${roomKey}`), { wrongAll: wa, lastWrong: { char: char, time: Date.now() } });
             }
-            const next = (currentData.turnIdx + 1) % pList.length;
-            update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
+            update(ref(db, `rooms/${roomKey}`), { turnIdx: (currentData.turnIdx + 1) % pList.length });
             if(currentData.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
                 setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 500);
             }
@@ -336,51 +273,35 @@
                 const s = document.createElement("div"); s.className = "slot";
                 s.innerText = myGuessed.includes(c) ? c : ""; display.appendChild(s);
             });
-
             const progArea = document.getElementById('progress-area'); progArea.innerHTML = "";
             Object.entries(data.players).forEach(([pid, p]) => {
                 if(pid === myId) return;
                 const row = document.createElement('div'); row.className = "prog-row";
                 row.innerHTML = `<span class="prog-name" style="color:${p.color}">${p.name}:</span>`;
                 data.target.split("").forEach(char => {
-                    const dot = document.createElement('div');
-                    dot.className = "p-dot";
+                    const dot = document.createElement('div'); dot.className = "p-dot";
                     if((p.guessedStr || "").includes(char)) dot.style.background = p.color;
                     row.appendChild(dot);
                 });
                 progArea.appendChild(row);
             });
-
-            document.querySelectorAll('.key').forEach(k => { k.classList.remove('my-correct', 'wrong-all'); });
+            document.querySelectorAll('.key').forEach(k => k.classList.remove('my-correct', 'wrong-all'));
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
             myGuessed.forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
-            const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
-            const curP = pList[data.turnIdx];
-            const msg = document.getElementById('turn-msg');
-            msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
-            msg.style.borderColor = curP?.color || "#ddd"; msg.style.color = curP?.color || "#333";
             document.getElementById('heart-count').innerText = " × " + Math.max(0, myHearts);
         }
 
-        function showWrongToast(char) {
-            const t = document.getElementById('wrong-toast');
-            t.innerText = `「${char}」はありません！`;
-            t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1200);
-        }
-
-        function showResult(data, players) {
-            showScreen('screen-result');
-            document.getElementById('res-word').innerText = "正解: " + data.target;
-            const area = document.getElementById('res-ranking'); area.innerHTML = "";
-            const sorted = players.sort((a,b) => b.score - a.score);
-            const winner = sorted[0];
-            document.getElementById('res-status').innerText = (winner.id === myId) ? "YOU WIN!" : "GAME OVER";
-            sorted.forEach((p, i) => {
-                const gList = (p.guessedStr || "").split(",").filter(s => s !== "").join(", ");
-                area.innerHTML += `<div style="border-bottom:1px solid #eee; padding:10px 0;"><div style="font-weight:bold; color:${p.color}; font-size:1.2rem;">${i+1}位: ${p.name} <span style="font-size:1rem; color:#666;">(${p.score}文字)</span></div><div style="font-size:0.85rem; color:#888; margin-top:5px;">当てた文字: ${gList || "なし"}</div></div>`;
-            });
-        }
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        
+        // ジャンル初期化
+        const gSel = document.getElementById('select-g');
+        Object.keys(dictionary).forEach(g => { const o = document.createElement('option'); o.value=g; o.innerText=g; gSel.appendChild(o); });
+
+        document.getElementById('btn-start').onclick = () => {
+            const g = document.getElementById('select-g').value;
+            const target = dictionary[g][Math.floor(Math.random()*dictionary[g].length)];
+            update(ref(db, `rooms/${roomKey}`), { status: "playing", target: target, turnIdx: 0, config: {g:g, h:parseInt(document.getElementById('select-h').value), removed:[]} });
+        };
     </script>
 </body>
 </html>
