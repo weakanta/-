@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v38.2</title>
+    <title>コトバ・サバイバル v38.3</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
         
-        /* 全体レイアウト */
         .game-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 15px; padding: 10px; max-width: 1200px; margin: 0 auto; }
         .main-column { flex: 1; max-width: 550px; min-width: 350px; }
         .side-panel { width: 220px; flex-shrink: 0; margin-top: 15px; position: sticky; top: 15px; }
@@ -17,34 +16,29 @@
         .screen { display: none; }
         .active { display: block; }
         
-        /* 入力画面・ボタンの大型化 */
         #screen-entry input[type="text"] { padding: 18px; font-size: 1.2rem; border-radius: 15px; border: 2px solid #ddd; margin-bottom: 15px; width: 100%; box-sizing: border-box; }
         .btn { padding: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1.1rem; width: 100%; box-sizing: border-box; }
         .btn-primary { background: var(--main); color: white; box-shadow: 0 4px 0 #357abd; }
         .btn-host { background: orange; color: white; margin-top: 10px; box-shadow: 0 4px 0 #d35400; }
         .btn-cpu { background: #8e44ad; color: white; margin-top: 10px; padding: 12px; }
 
-        /* ジャンル選択の微調整 */
         .genre-sel-box { background:#f8f9fa; padding:15px; border-radius:15px; margin-bottom:20px; text-align:left; }
         .genre-option { display: flex; align-items: center; margin: 10px 0; cursor: pointer; }
         .genre-option input[type="radio"] { width: 22px !important; height: 22px !important; margin: 0 10px 0 0 !important; cursor: pointer; }
         .genre-option label { cursor: pointer; font-weight: bold; font-size: 1rem; }
 
-        /* 文字スロットの巨大化 */
         .word-slot { width: 45px; height: 55px; border-bottom: 4px solid #4a90e2; margin: 5px; font-size: 2.2rem; font-weight: 900; display: flex; align-items: center; justify-content: center; color: #222; }
 
-        /* キーボード */
+        /* キーボードの改行と除外設定（修正ポイント） */
         .kb-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; background: #e2e8f0; padding: 10px; border-radius: 15px; }
         .key { aspect-ratio: 1; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #cbd5e0; font-size: 1.1rem; }
-        .key.correct { background: var(--sub) !important; color: white; box-shadow: none; }
-        .key.wrong { background: var(--danger) !important; color: white; box-shadow: none; }
+        .key.correct { background: #bdc3c7 !important; color: #7f8c8d; box-shadow: none; pointer-events: none; opacity: 0.5; } /* 除外された文字 */
+        .key.wrong { background: var(--danger) !important; color: white; box-shadow: none; pointer-events: none; opacity: 0.3; }   /* 除外された文字 */
         .kb-disabled { opacity: 0.5; pointer-events: none; filter: grayscale(0.5); }
 
-        /* 進捗・プレイヤーリスト */
         .progress-item { background: #f8f9fa; padding: 8px 12px; border-radius: 12px; margin-bottom: 6px; text-align: left; font-size: 0.9rem; border-left: 5px solid transparent; }
         .player-card { padding: 8px 15px; border-radius: 20px; background: #eee; font-size: 1rem; font-weight: bold; }
 
-        /* チャット入力欄のはみ出し修正（修正ポイント） */
         #chat-box { height: 280px; overflow-y: auto; text-align: left; font-size: 0.9rem; background: #f8f9fa; border-radius: 10px; padding: 12px; border: 1px solid #eee; margin-bottom: 10px; }
         #chat-input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
 
@@ -162,19 +156,30 @@
         let audioCtx, soundOn = true, lastSndT = 0, lastMsgT = 0, lastStampT = 0;
         const colors = ['#4a90e2', '#2ed573', '#ff4757', '#ffa502', '#9b59b6', '#e84393'];
         const itemInfo = { HEAL: "🎈回復", ATTACK: "💣攻撃", REVEAL: "🔍透視", CLEAN: "🧹掃除" };
-        const kana = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんーがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ";
+        
+        // 整列されたキーボード用配列（空白を入れて5個ずつに調整）
+        const kanaLayout = [
+            "あ","い","う","え","お",
+            "か","き","く","け","こ",
+            "さ","し","す","せ","そ",
+            "た","ち","つ","て","と",
+            "な","に","ぬ","ね","の",
+            "は","ひ","ふ","へ","ほ",
+            "ま","み","む","め","も",
+            "や"," ","ゆ"," ","よ",
+            "ら","り","る","れ","ろ",
+            "わ","を","ん","ー"," ",
+            "が","ぎ","ぐ","げ","ご",
+            "ざ","じ","ず","ぜ","ぞ",
+            "だ","ぢ","づ","で","ど",
+            "ば","び","ぶ","べ","ぼ",
+            "ぱ","ぴ","ぷ","ぺ","ぽ",
+            "ゃ","ゅ","ょ","っ"," ",
+            "ぁ","ぃ","ぅ","ぇ","ぉ","ゔ"
+        ];
 
-        function initSnd() {
-            if(soundOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if(audioCtx?.state === 'suspended') audioCtx.resume();
-        }
-
-        window.toggleSnd = () => {
-            soundOn = !soundOn;
-            document.getElementById('sound-btn').innerText = soundOn ? "🔊 音: ON" : "🔇 音: OFF";
-            if(soundOn) initSnd();
-        };
-
+        function initSnd() { if(soundOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx?.state === 'suspended') audioCtx.resume(); }
+        window.toggleSnd = () => { soundOn = !soundOn; document.getElementById('sound-btn').innerText = soundOn ? "🔊 音: ON" : "🔇 音: OFF"; if(soundOn) initSnd(); };
         function playSnd(type) {
             if(!soundOn || !audioCtx) return;
             const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
@@ -191,7 +196,6 @@
             myName = document.getElementById('input-name').value || "名無し";
             roomKey = "room_" + (document.getElementById('input-room').value || "123");
             myId = Math.random().toString(36).slice(2, 7);
-
             const roomRef = ref(db, `rooms/${roomKey}`);
             if(host) {
                 set(roomRef, {
@@ -199,41 +203,22 @@
                     votes: {}, selectedGenre: "オールジャンル", lastMsg: {time:0}, lastSnd: {time:0}, lastStamp: {time:0}
                 });
             }
-
-            set(ref(db, `rooms/${roomKey}/players/${myId}`), {
-                name: myName, color: colors[0], hearts: 17, score: 0, guessed: "", items: []
-            });
+            set(ref(db, `rooms/${roomKey}/players/${myId}`), { name: myName, color: colors[0], hearts: 17, score: 0, guessed: "", items: [] });
             onDisconnect(ref(db, `rooms/${roomKey}/players/${myId}`)).remove();
-
             document.getElementById('side-left').style.display = 'block';
             document.getElementById('side-right').style.display = 'block';
             showScreen('screen-lobby');
             if(host) document.querySelectorAll('.host-only').forEach(e => e.style.display = 'block');
-
-            document.getElementById('chat-input').onkeydown = (e) => {
-                if(e.key === 'Enter' && e.target.value.trim()) {
-                    push(ref(db, `rooms/${roomKey}/chats`), { name: myName, text: e.target.value, color: currentData.players[myId].color });
-                    e.target.value = '';
-                }
-            };
-
+            document.getElementById('chat-input').onkeydown = (e) => { if(e.key === 'Enter' && e.target.value.trim()) { push(ref(db, `rooms/${roomKey}/chats`), { name: myName, text: e.target.value, color: currentData.players[myId].color }); e.target.value = ''; } };
             onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
                 const box = document.getElementById('chat-box'); box.innerHTML = '';
-                snap.forEach(child => {
-                    const c = child.val(); box.innerHTML += `<div><b style="color:${c.color}">${c.name}</b>: ${c.text}</div>`;
-                });
+                snap.forEach(child => { const c = child.val(); box.innerHTML += `<div><b style="color:${c.color}">${c.name}</b>: ${c.text}</div>`; });
                 box.scrollTop = box.scrollHeight;
             });
-
             onValue(roomRef, (snap) => {
                 const data = snap.val(); if(!data) return;
-                currentData = data;
-                const pKeys = Object.keys(data.players || {}).sort();
-
-                updatePlayerList(data, pKeys);
-                renderColorPalette(data);
-                renderVotes(data);
-
+                currentData = data; const pKeys = Object.keys(data.players || {}).sort();
+                updatePlayerList(data, pKeys); renderColorPalette(data); renderVotes(data);
                 const inv = document.getElementById('my-inventory'); inv.innerHTML = "";
                 (data.players[myId]?.items || []).forEach((it, idx) => {
                     const b = document.createElement('button'); b.className = 'btn';
@@ -241,19 +226,16 @@
                     b.innerText = itemInfo[it]; b.onclick = () => useItem(it, idx); inv.appendChild(b);
                 });
                 document.getElementById('game-items').style.display = data.status === "playing" ? "block" : "none";
-
                 if(data.lastSnd?.time > lastSndT) { lastSndT = data.lastSnd.time; playSnd(data.lastSnd.type); }
                 if(data.lastMsg?.time > lastMsgT) { lastMsgT = data.lastMsg.time; showT(data.lastMsg.text); }
                 if(data.lastStamp?.time > lastStampT) { lastStampT = data.lastStamp.time; showS(data.lastStamp); }
-
                 if(data.status !== lastState) {
                     lastState = data.status;
                     if(data.status === "playing") initGame(data);
                     else if(data.status === "finished") showResult(data, pKeys);
                     else if(data.status === "lobby") showScreen('screen-lobby');
                 } else if(data.status === "playing") {
-                    updateUI(data, pKeys);
-                    checkCPUTurn(data, pKeys);
+                    updateUI(data, pKeys); checkCPUTurn(data, pKeys);
                 }
             });
         };
@@ -261,8 +243,7 @@
         function updatePlayerList(data, pKeys) {
             const list = document.getElementById('lobby-player-list'); list.innerHTML = "";
             pKeys.forEach(k => {
-                const p = data.players[k];
-                const card = document.createElement('div'); card.className = 'player-card';
+                const p = data.players[k]; const card = document.createElement('div'); card.className = 'player-card';
                 card.innerHTML = `<span style="color:${p.color}">●</span> ${p.name}`;
                 if(isHost && p.isCPU) { card.onclick = () => remove(ref(db, `rooms/${roomKey}/players/${k}`)); card.style.cursor="pointer"; }
                 list.appendChild(card);
@@ -275,7 +256,8 @@
             if(data.players[curId]?.isCPU) {
                 cpuThinking = true;
                 setTimeout(() => {
-                    const possible = kana.split("").filter(c => !data.wrongAll?.includes(c) && !(data.players[curId].guessed||"").includes(c));
+                    const allCorrect = Object.values(data.players).map(p => p.guessed || "").join("");
+                    const possible = kanaLayout.filter(c => c !== " " && !data.wrongAll?.includes(c) && !allCorrect.includes(c));
                     handleGuess(curId, possible[Math.floor(Math.random()*possible.length)]);
                     cpuThinking = false;
                 }, 1500);
@@ -286,8 +268,7 @@
             const cp = document.getElementById('color-palette'); cp.innerHTML = '';
             const taken = Object.values(data.players).map(p => p.color);
             colors.forEach(c => {
-                const b = document.createElement('div');
-                const isMine = data.players[myId]?.color === c;
+                const b = document.createElement('div'); const isMine = data.players[myId]?.color === c;
                 b.style.width = "40px"; b.style.height = "40px"; b.style.borderRadius = "50%"; b.style.background = c; b.style.cursor = "pointer";
                 b.style.border = isMine ? "4px solid #333" : "4px solid transparent";
                 if(taken.includes(c) && !isMine) b.style.opacity = "0.2";
@@ -298,34 +279,28 @@
 
         function renderVotes(data) {
             const container = document.getElementById('vote-buttons'); container.innerHTML = "";
-            // オールジャンルの重複を防ぐ（修正ポイント）
             const dictKeys = Object.keys(dictionary);
             const genres = dictKeys.includes("オールジャンル") ? dictKeys : ["オールジャンル", ...dictKeys];
-
             document.getElementById('vote-msg').innerText = data.genreMode === "vote" ? "🎨 ジャンル投票" : "👑 ホストが選択中";
             genres.forEach(g => {
                 const btn = document.createElement('button'); btn.className = 'btn';
                 btn.style.padding = "10px"; btn.style.fontSize = "0.8rem"; btn.style.background = "white"; btn.style.color = "#333"; btn.style.height="auto";
                 const count = Object.values(data.votes || {}).filter(v => v === g).length;
                 btn.innerText = `${g} ${data.genreMode === "vote" ? `(${count})` : ''}`;
-                if(data.genreMode === "vote") {
-                    if(data.votes?.[myId] === g) btn.style.border = "2px solid var(--main)";
-                    btn.onclick = () => update(ref(db, `rooms/${roomKey}/votes`), { [myId]: g });
-                } else if(isHost) {
-                    if(data.selectedGenre === g) btn.style.border = "2px solid var(--main)";
-                    btn.onclick = () => update(ref(db, `rooms/${roomKey}`), { selectedGenre: g });
-                }
+                if(data.genreMode === "vote") { if(data.votes?.[myId] === g) btn.style.border = "2px solid var(--main)"; btn.onclick = () => update(ref(db, `rooms/${roomKey}/votes`), { [myId]: g }); }
+                else if(isHost) { if(data.selectedGenre === g) btn.style.border = "2px solid var(--main)"; btn.onclick = () => update(ref(db, `rooms/${roomKey}`), { selectedGenre: g }); }
                 container.appendChild(btn);
             });
         }
 
         function initGame(data) {
             showScreen('screen-game');
-            document.getElementById('display-genre').innerText = data.config.genre;
+            // 文字数を表示（修正ポイント）
+            document.getElementById('display-genre').innerText = `${data.config.genre} (${data.target.length}文字)`;
             const kb = document.getElementById('keyboard'); kb.innerHTML = "";
-            kana.split("").forEach(c => {
-                const k = document.createElement('div'); k.className = 'key'; k.id = "k-"+c; k.innerText = c;
-                k.onclick = () => handleGuess(myId, c);
+            kanaLayout.forEach(c => {
+                const k = document.createElement('div'); k.className = 'key'; 
+                if(c === " ") { k.style.visibility = "hidden"; } else { k.innerText = c; k.onclick = () => handleGuess(myId, c); }
                 kb.appendChild(k);
             });
         }
@@ -382,9 +357,16 @@
             document.getElementById('turn-info').innerText = isMyTurn ? "★ あなたの番です ★" : `${data.players[curId]?.name}の番...`;
             document.getElementById('turn-info').style.color = data.players[curId]?.color;
             const kb = document.getElementById('keyboard'); kb.className = isMyTurn ? 'kb-container' : 'kb-container kb-disabled';
+            
+            // 誰かが正解した文字のリストを作成（除外用）
+            const allGuessedChars = Object.values(data.players).map(p => p.guessed || "").join("");
+
             document.querySelectorAll('.key').forEach(k => {
-                k.className = 'key'; if(data.wrongAll?.includes(k.innerText)) k.classList.add('wrong'); if(myP.guessed?.includes(k.innerText)) k.classList.add('correct');
+                k.className = 'key'; 
+                if(data.wrongAll?.includes(k.innerText)) k.classList.add('wrong'); // 全員のミスを除外
+                if(allGuessedChars.includes(k.innerText)) k.classList.add('correct'); // 全員の正解を除外
             });
+
             const prog = document.getElementById('progress-list'); prog.innerHTML = "";
             pKeys.forEach(id => {
                 const pl = data.players[id]; const item = document.createElement('div'); item.className = 'progress-item';
@@ -406,14 +388,12 @@
         function showT(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
         window.sendStamp = (emoji) => { initSnd(); update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() }, lastSnd: { type: 'stamp', time: Date.now() } }); };
         function showS(s) { const p=document.getElementById('stamp-pop'); p.innerText=`${s.sender}: ${s.emoji}`; p.classList.add('show'); setTimeout(()=>p.classList.remove('show'), 1500); }
-
         document.getElementById('btn-create').onclick = () => startEntry(true);
         document.getElementById('btn-join').onclick = () => startEntry(false);
         document.getElementById('btn-add-cpu').onclick = () => {
             const id = "cpu_" + Math.random().toString(36).slice(2, 7); const taken = Object.values(currentData.players).map(p => p.color);
             update(ref(db, `rooms/${roomKey}/players/${id}`), { name: "🤖 CPU", color: colors.find(c => !taken.includes(c)) || colors[0], hearts: 17, score: 0, guessed: "", items: [], isCPU: true });
         };
-        // CPUを減らす（修正ポイント）
         document.getElementById('btn-remove-cpu').onclick = () => {
             const cpuIds = Object.keys(currentData.players).filter(k => currentData.players[k].isCPU);
             if(cpuIds.length > 0) remove(ref(db, `rooms/${roomKey}/players/${cpuIds[cpuIds.length - 1]}`));
