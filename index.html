@@ -21,7 +21,7 @@
         .btn-host { background: orange; color: white; margin-top: 10px; font-size: 1.1rem; }
         
         input[type="text"], input[type="number"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-        input[type="color"] { border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
+        input[type="color"] { border-radius: 8px; border: 1px solid #ddd; cursor: pointer; }
 
         .entry-settings { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; font-size: 0.9rem; border: 1px solid #eee; }
         
@@ -39,20 +39,22 @@
         /* ゲーム中表示 */
         #game-genre-label { position: absolute; top: 10px; left: 15px; background: rgba(0,0,0,0.7); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
         
-        /* 🎈風船を元のサイズに */
+        /* 🎈風船を元のサイズに戻す */
         #heart-status { margin-bottom: 10px; font-size: 1.8rem; letter-spacing: 2px; }
+        .prog-heart-text { font-size: 0.9rem; font-weight: bold; display: inline-block; margin-top: 3px; }
 
         /* キーボード */
         .kb-container { background: #e2e8f0; padding: 8px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .key { aspect-ratio: 1.1; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
         .key.my-correct { background: var(--sub) !important; color: white; box-shadow: none; }
         .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: none; }
-        .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; }
         
-        #chat-area { display: flex; flex-direction: column; height: 350px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        #chat-area { display: flex; flex-direction: column; height: 300px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
-        .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom:15px; }
         .stamp-btn { font-size: 1.5rem; padding: 10px 0; border: none; background: #f0f3f5; border-radius: 12px; cursor: pointer; box-shadow: 0 3px 0 #ddd; }
+
+        #sound-toggle-btn { background: #333; color: white; border: none; padding: 10px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 3px 0 #111; margin-top: 10px; font-size:0.9rem;}
 
         #stamp-popup { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 30px; border-radius: 40px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; font-size: 1.5rem; }
         #stamp-popup.show { transform: translate(-50%, -50%) scale(1); }
@@ -74,20 +76,18 @@
                 <div id="chat-box"></div>
                 <input type="text" id="chat-input" placeholder="Enterで送信">
             </div>
+            <button id="sound-toggle-btn" onclick="toggleSound()">🔇 音: オフ</button>
         </div>
 
         <div class="main-column">
             <div id="screen-entry" class="screen active panel">
                 <h1 style="color:var(--main); margin-top:0;">コトバ・サバイバル</h1>
                 
-                <div style="text-align: right; margin-bottom: 10px;">
-                    <button id="btn-sound" class="btn" style="background:#8e44ad; color:white; width:auto; padding:6px 12px; font-size:0.8rem;">🔊 効果音: ON</button>
-                </div>
-
                 <div style="display:flex; gap:10px; margin-bottom:10px;">
                     <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー" style="flex:1; margin-bottom:0;">
                     <input type="color" id="input-color" value="#4a90e2" style="width:50px; height:42px; padding:0;">
                 </div>
+                
                 <input type="text" id="input-room" placeholder="部屋ID" value="123">
                 
                 <div class="entry-settings">
@@ -174,48 +174,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let myId, myName, myColor, roomKey, isHost = false, currentData = null, lastStatus = "entry", lastStampTime = 0;
+        let myId, myName, myColor, roomKey, isHost = false, currentData = null, lastStatus = "entry";
+        let lastStampTime = 0, lastSoundTime = 0;
         let myItems = 0, myVote = "";
         
-        // --- 効果音システム ---
-        let soundEnabled = true;
+        // サウンド用変数
         let audioCtx;
-        document.getElementById('btn-sound').onclick = (e) => {
-            soundEnabled = !soundEnabled;
-            e.target.innerText = soundEnabled ? "🔊 効果音: ON" : "🔇 効果音: OFF";
-            e.target.style.background = soundEnabled ? "#8e44ad" : "#a4b0be";
-        };
-
-        function playSound(type) {
-            if(!soundEnabled) return;
-            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            if(type === 'correct') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-            } else if(type === 'wrong') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-            } else if(type === 'item') {
-                osc.type = 'square'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-            } else if(type === 'turn') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(660, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-            }
-        }
+        let soundEnabled = false;
 
         const kanaGroups = [
             { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" }, { label: "さ行", chars: "さしすせそ" }, { label: "たち行", chars: "たちつてと" }, { label: "な行", chars: "なにぬねの" }, { label: "は行", chars: "はひふへほ" }, { label: "ま行", chars: "まみむめも" }, { label: "や行", chars: "やゆよ" }, { label: "ら行", chars: "らりるれろ" }, { label: "わ行", chars: "わをんー" }, { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
@@ -223,12 +188,44 @@
 
         const getPlayerKeys = (playersObj) => Object.keys(playersObj || {}).sort();
 
-        const entry = (host) => {
-            if(soundEnabled && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // 🔊 サウンド再生処理 (Web Audio API)
+        window.toggleSound = () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-toggle-btn').innerText = soundEnabled ? "🔊 音: オン" : "🔇 音: オフ";
+            if(soundEnabled && !audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        };
+
+        function playSound(type) {
+            if(!soundEnabled || !audioCtx) return;
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
             
+            const now = audioCtx.currentTime;
+            if(type === 'correct') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now);
+                osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(); osc.stop(now + 0.2);
+            } else if(type === 'wrong') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(); osc.stop(now + 0.3);
+            } else if(type === 'item') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(600, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(); osc.stop(now + 0.3);
+            }
+        }
+
+        const entry = (host) => {
             isHost = host;
             myName = document.getElementById('input-name').value || "プレイヤー";
-            myColor = document.getElementById('input-color').value; // 🎨 カラー取得復活
+            myColor = document.getElementById('input-color').value || "#4a90e2";
             roomKey = "room_" + (document.getElementById('input-room').value || "123");
             myId = Math.random().toString(36).slice(2, 7);
             
@@ -241,10 +238,9 @@
             const roomRef = ref(db, `rooms/${roomKey}`);
             if(host) {
                 const mode = document.querySelector('input[name="entry-mode"]:checked').value;
-                set(roomRef, { status: "lobby", genreMode: mode, votes: {}, selectedByHost: "オールジャンル", lastStamp: {time:0} });
+                set(roomRef, { status: "lobby", genreMode: mode, votes: {}, selectedByHost: "オールジャンル", lastStamp: {time:0}, lastSound: {time:0} });
             }
             
-            // 🎨 colorにmyColorをセット
             set(ref(db, `rooms/${roomKey}/players/${myId}`), { name: myName, score: 0, guessedStr: "", hearts: 17, color: myColor, isCPU: false, items: 0 });
             onDisconnect(ref(db, `rooms/${roomKey}/players/${myId}`)).remove();
             
@@ -265,6 +261,12 @@
                 document.getElementById('item-empty').style.display = myItems > 0 ? 'none' : 'block';
 
                 if(data.lastStamp?.time > lastStampTime) { lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp); }
+                
+                // サウンドの同期再生
+                if(data.lastSound?.time > lastSoundTime) { 
+                    lastSoundTime = data.lastSound.time; 
+                    playSound(data.lastSound.type); 
+                }
                 
                 if(data.status === "playing" && isHost) {
                     const curP = data.players[pKeys[data.turnIdx]];
@@ -309,7 +311,7 @@
                 const allKana = kanaGroups.map(g => g.chars).join("").split("");
                 const guessed = Object.values(data.players).flatMap(p => (p.guessedStr || "").split(","));
                 const wrong = data.wrongAll || [];
-                const possible = allKana.filter(c => !guessed.includes(c) && !wrong.includes(c) && !data.config.removed?.includes(c));
+                const possible = allKana.filter(c => !guessed.includes(c) && !wrong.includes(c));
                 if(possible.length > 0) processGuess(cpuId, possible[Math.floor(Math.random() * possible.length)]);
             }, 1500);
         }
@@ -319,23 +321,22 @@
             
             if(Math.random() < 0.1) {
                 updates[`players/${pid}/items`] = (p.items || 0) + 1;
-                if(pid === myId) {
-                    showWrongToast("🎁 アイテムGET！");
-                    playSound('item'); // 🔊 音追加
-                }
+                updates[`lastSound`] = { type: 'item', time: Date.now() }; // アイテムゲット音
+                if(pid === myId) showWrongToast("🎁 アイテムGET！");
             }
 
             if(data.target.includes(char)) {
                 const g = (p.guessedStr ? p.guessedStr + "," : "") + char;
                 updates[`players/${pid}/guessedStr`] = g;
                 updates[`players/${pid}/score`] = g.split(",").length;
-                if(pid === myId) playSound('correct'); // 🔊 音追加
+                if(!updates[`lastSound`]) updates[`lastSound`] = { type: 'correct', time: Date.now() }; // 正解音
             } else {
                 updates[`players/${pid}/hearts`] = (p.hearts || 0) - 1;
                 const wa = data.wrongAll || []; wa.push(char); updates[`wrongAll`] = wa;
                 updates[`lastWrong`] = { char, time: Date.now() };
-                if(pid === myId) playSound('wrong'); // 🔊 音追加
+                if(!updates[`lastSound`]) updates[`lastSound`] = { type: 'wrong', time: Date.now() }; // ブブー音
             }
+            
             const pKeys = getPlayerKeys(data.players);
             updates[`turnIdx`] = (data.turnIdx + 1) % pKeys.length;
             update(ref(db, `rooms/${roomKey}`), updates);
@@ -353,8 +354,6 @@
             const effect = effects[Math.floor(Math.random() * effects.length)];
             const updates = {};
             const pList = currentData.players;
-
-            playSound('item'); // 🔊 音追加
 
             if(effect === "HEAL") {
                 showWrongToast("🎈 風船が5回復した！");
@@ -381,6 +380,7 @@
             }
 
             updates[`players/${myId}/items`] = myItems - 1;
+            updates[`lastSound`] = { type: 'item', time: Date.now() }; // アイテム使用音
             update(ref(db, `rooms/${roomKey}`), updates);
         };
 
@@ -410,7 +410,6 @@
             update(ref(db, `rooms/${roomKey}`), updates);
         };
 
-        let lastTurnIdx = -1; // ターン切り替え検知用
         function initGame(data) {
             showScreen('screen-game');
             document.getElementById('game-genre-label').innerText = "ジャンル: " + data.config.g;
@@ -440,7 +439,6 @@
                     kb.appendChild(k);
                 });
             });
-            lastTurnIdx = -1;
             renderUI(data);
         }
 
@@ -461,7 +459,7 @@
                 progArea.innerHTML += `<div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; margin-bottom:5px; background:#f9f9f9; padding:5px; border-radius:8px;">
                     <div style="min-width:80px; text-align:right;">
                         <b style="color:${p.color}">${p.name}</b><br>
-                        <span>🎈${p.hearts}</span>
+                        <span class="prog-heart-text">🎈${p.hearts}</span>
                     </div>
                     <div style="display:flex; gap:2px;">${data.target.split("").map(c => `<div style="width:8px; height:8px; border-radius:50%; background:${(p.guessedStr||"").includes(c)?p.color:'#ddd'}"></div>`).join("")}</div>
                 </div>`;
@@ -472,15 +470,8 @@
             (myP.guessedStr || "").split(",").forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
             
             const curP = data.players[pKeys[data.turnIdx]];
-            const msg = document.getElementById('turn-msg'); 
-            msg.innerText = (curP?.name === myName) ? "★ あなたの番 ★" : `${curP?.name}の番...`;
+            const msg = document.getElementById('turn-msg'); msg.innerText = (curP?.name === myName) ? "★ あなたの番 ★" : `${curP?.name}の番...`;
             msg.style.color = curP?.color || "#333";
-
-            // 🔊 自分のターンが回ってきたときに音を鳴らす
-            if (data.turnIdx !== lastTurnIdx) {
-                if (curP?.name === myName) playSound('turn');
-                lastTurnIdx = data.turnIdx;
-            }
         }
 
         function showResult(data, pKeys) {
@@ -488,7 +479,7 @@
             document.getElementById('res-word').innerText = "正解: " + data.target;
             const area = document.getElementById('res-ranking'); area.innerHTML = "";
             const players = pKeys.map(id => data.players[id]);
-            players.sort((a,b)=>b.score-a.score).forEach((p,i)=> area.innerHTML += `<div style="padding:8px; border-bottom:1px solid #eee;"><b style="color:${p.color}">${i+1}位: ${p.name}</b> (正解:${p.score} / 🎈${p.hearts})</div>`);
+            players.sort((a,b)=>b.score-a.score).forEach((p,i)=> area.innerHTML += `<div style="padding:8px; border-bottom:1px solid #eee;"><b>${i+1}位: <span style="color:${p.color}">${p.name}</span></b> (正解:${p.score} / 🎈${p.hearts})</div>`);
         }
 
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
