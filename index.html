@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル Pro v4</title>
+    <title>コトバ・サバイバル Pro v5</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -16,31 +16,27 @@
         .btn-primary { background: var(--main); color: white; }
         .btn-host { background: orange; color: white; width: 100%; margin-top: 15px; font-size: 1.1rem; }
 
-        /* カラーセレクター */
-        .color-picker { display: flex; justify-content: center; gap: 10px; margin: 15px 0; }
-        .color-dot { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; }
-        .color-dot.selected { border-color: #333; transform: scale(1.2); }
+        /* カラーセレクター（ロビー用） */
+        .color-picker { display: flex; justify-content: center; gap: 10px; margin: 10px 0; padding: 10px; background: #eee; border-radius: 12px; }
+        .color-dot { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; position: relative; }
+        .color-dot.selected { border-color: #333; transform: scale(1.1); }
+        .color-dot.taken { opacity: 0.2; cursor: not-allowed; pointer-events: none; }
+        .color-dot.taken::after { content: "×"; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
 
-        /* キーボード：文字をさらに小さく調整 */
+        /* キーボード */
         .kb-container { background: #e2e8f0; padding: 6px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-        .key { aspect-ratio: 1.25; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
-        .key.my-correct { background: var(--sub) !important; color: white; box-shadow: 0 2px 0 #24b662; }
-        .key.my-used { background: #94a3b8 !important; color: transparent; pointer-events: none; opacity: 0.2; box-shadow: none; }
-        .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: 0 2px 0 #b91c1c; }
-        .key.removed { background: #cbd5e0 !important; color: transparent; pointer-events: none; opacity: 0.4; box-shadow: none; }
-        .key-group-label { grid-column: span 5; font-size: 0.6rem; color: #718096; text-align: left; padding: 4px 0 0 2px; }
+        .key { aspect-ratio: 1.2; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
+        .key.my-correct { background: var(--sub) !important; color: white; }
+        .key.my-used { background: #94a3b8 !important; color: transparent; pointer-events: none; opacity: 0.2; }
+        .key.wrong-all { background: var(--danger) !important; color: white; }
+        .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; }
+        .key-group-label { grid-column: span 5; font-size: 0.65rem; color: #718096; text-align: left; padding: 4px 2px 0; }
 
-        /* ターンメッセージ：カラー枠 */
-        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; font-size: 1rem; transition: 0.3s; background: white; }
-        
-        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 40px; border-radius: 15px; font-size: 1.5rem; font-weight: bold; z-index: 3000; pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; transition: 0.3s; }
+        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 15px; z-index: 9999; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
         #wrong-toast.show { transform: translate(-50%, -50%) scale(1); }
-
-        #word-display { display: flex; justify-content: center; gap: 4px; margin: 15px 0; flex-wrap: wrap; }
-        .slot { width: 26px; height: 36px; border-bottom: 3px solid #cbd5e0; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-
-        .rank-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-        .host-only { display: none; }
+        .slot { width: 28px; height: 38px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
+        .rank-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -48,18 +44,7 @@
     <div id="wrong-toast"></div>
 
     <div id="screen-entry" class="screen active panel">
-        <h1 style="color:var(--main); margin:0 0 10px 0;">コトバ・サバイバル</h1>
-        <p style="font-size:0.8rem; margin-bottom:15px;">カラーを選んで参加しよう！</p>
-        
-        <div class="color-picker" id="color-picker">
-            <div class="color-dot selected" style="background:#4a90e2" data-color="#4a90e2"></div>
-            <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div>
-            <div class="color-dot" style="background:#2ed573" data-color="#2ed573"></div>
-            <div class="color-dot" style="background:#ffa502" data-color="#ffa502"></div>
-            <div class="color-dot" style="background:#af7ac5" data-color="#af7ac5"></div>
-            <div class="color-dot" style="background:#576574" data-color="#576574"></div>
-        </div>
-
+        <h1 style="color:var(--main)">コトバ・サバイバル</h1>
         <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー"><br>
         <input type="text" id="input-room" placeholder="部屋ID" value="123"><br>
         <div style="margin-top:20px; display:flex; gap:10px;">
@@ -70,48 +55,48 @@
 
     <div id="screen-lobby" class="screen panel">
         <h2>待機ロビー</h2>
+        <div class="color-picker" id="lobby-color-picker">
+            <div class="color-dot" style="background:#4a90e2" data-color="#4a90e2"></div>
+            <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div>
+            <div class="color-dot" style="background:#2ed573" data-color="#2ed573"></div>
+            <div class="color-dot" style="background:#ffa502" data-color="#ffa502"></div>
+            <div class="color-dot" style="background:#af7ac5" data-color="#af7ac5"></div>
+            <div class="color-dot" style="background:#576574" data-color="#576574"></div>
+        </div>
         <div style="text-align:left; background:#f9f9f9; padding:15px; border-radius:12px;">
-            <p><b>メンバー:</b> <span id="lobby-members">---</span></p>
-            <hr>
+            <p><b>参加メンバー:</b> <span id="lobby-members">---</span></p>
             <div class="host-only">
+                <hr>
                 <label>ジャンル:</label><br>
                 <select id="select-g">
                     <option value="たべもの">たべもの</option><option value="どうぶつ">どうぶつ</option>
-                    <option value="のりもの">のりもの</option><option value="むし">むし</option>
-                    <option value="ポケモン">ポケモン</option><option value="ちめい">ちめい</option>
+                    <option value="のりもの">のりもの</option><option value="ポケモン">ポケモン</option>
                 </select><br>
-                <label>ライフ:</label> <input type="number" id="select-h" value="17" style="width:60px;"><br>
-                <label>除外文字数:</label> <input type="number" id="select-r" value="10" style="width:60px;">
-            </div>
-            <div id="guest-view" style="display:none;">
-                <p>ジャンル: <b id="view-g">---</b></p>
-                <p>ライフ: <b id="view-h">---</b> | 除外: <b id="view-r">---</b></p>
+                <label>ライフ: <input type="number" id="select-h" value="17" style="width:50px;"></label>
             </div>
         </div>
-        <button id="btn-start" class="btn btn-host host-only">ゲーム開始！</button>
+        <button id="btn-start" class="btn btn-host host-only">全員揃った！開始</button>
         <p id="guest-msg" style="font-size:0.8rem; color:#666;">ホストが開始するのを待っています...</p>
     </div>
 
     <div id="screen-game" class="screen panel">
         <div id="turn-msg">読み込み中...</div>
-        <div id="heart-bar" style="color:var(--danger); font-size:1rem; margin-bottom:5px;"></div>
-        <div id="word-display"></div>
+        <div id="heart-bar" style="color:var(--danger); font-size:1rem; margin-bottom:10px;"></div>
+        <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:15px;"></div>
         <div id="keyboard" class="kb-container"></div>
     </div>
 
     <div id="screen-result" class="screen panel">
         <h1 id="res-status">RESULT</h1>
-        <h2 id="res-word" style="color:var(--main)">正解: ---</h2>
+        <h2 id="res-word" style="color:var(--main)"></h2>
         <div id="res-ranking"></div>
-        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
-            <button id="btn-replay" class="btn btn-host host-only" style="margin:0;">もう一度遊ぶ</button>
-            <button onclick="location.reload()" class="btn btn-primary">ロビーに戻る</button>
-        </div>
+        <button id="btn-replay" class="btn btn-host host-only">もう一度遊ぶ</button>
+        <button onclick="location.reload()" class="btn btn-primary" style="width:100%; margin-top:10px;">終了する</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, onDisconnect, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
@@ -125,35 +110,35 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Sound Logic
+        // --- 音声エンジンの初期化をラップ ---
         let audioCtx;
         function playTone(freq, duration, type = "sine") {
-            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type; osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + duration);
+            try {
+                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
         }
         const sounds = {
-            correct: () => { playTone(880, 0.1); setTimeout(() => playTone(1320, 0.2), 100); },
-            wrong: () => { playTone(220, 0.3, "square"); },
-            turn: () => { playTone(440, 0.05, "triangle"); },
-            win: () => { [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 0.4), i * 150)); }
+            correct: () => { playTone(880, 0.1); setTimeout(() => playTone(1320, 0.15), 100); },
+            wrong: () => playTone(220, 0.3, "square"),
+            turn: () => playTone(440, 0.05, "triangle"),
+            win: () => [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 0.3), i * 150))
         };
 
         const dictionary = {
-            "たべもの": ["おむらいす", "めろんぱん", "そふとくりーむ", "たこやき", "すぱげってぃ", "ぽてとふらい", "かれーらいす"],
-            "どうぶつ": ["らいおん", "ちんぱんじー", "はむすたー", "ふらみんご", "きりん", "しか", "かんがるー"],
-            "のりもの": ["しんかんせん", "へりこぷたー", "しょうぼうしゃ", "きゅうきゅうしゃ", "よっと"],
-            "むし": ["かぶとむし", "あげはちょう", "てんとうむし", "かまきり", "くわがた"],
-            "ポケモン": ["ぴかちゅう", "りざーどん", "いーぶい", "げっこうがー", "るかりお", "みゅうつー", "かびごん", "れっくうざ"],
-            "ちめい": ["ほっかいどう", "とうきょう", "おおさか", "ふじさん", "おきなわ", "よこはま", "なごや", "きょうと"]
+            "たべもの": ["おむらいす", "めろんぱん", "そふとくりーむ", "たこやき", "かれーらいす"],
+            "どうぶつ": ["らいおん", "ちんぱんじー", "はむすたー", "かんがるー"],
+            "のりもの": ["しんかんせん", "へりこぷたー", "きゅうきゅうしゃ"],
+            "ポケモン": ["ぴかちゅう", "りざーどん", "いーぶい", "げっこうがー", "みゅうつー"]
         };
-        
+
         const kanaGroups = [
             { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" },
             { label: "さ行", chars: "さしすせそ" }, { label: "たち行", chars: "たちつてと" },
@@ -162,83 +147,89 @@
             { label: "ら行", chars: "らりるれろ" }, { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉ" }
         ];
 
-        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null, lastTurnId = "";
-        let selectedColor = "#4a90e2";
-
-        // カラー選択イベント
-        document.querySelectorAll('.color-dot').forEach(dot => {
-            dot.onclick = () => {
-                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
-                dot.classList.add('selected');
-                selectedColor = dot.dataset.color;
-            };
-        });
+        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
+        let lastTurnId = "", lastStatus = "entry";
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
 
-        // 入口ボタンの修正
-        document.getElementById('btn-create').addEventListener('click', () => entry(true));
-        document.getElementById('btn-join').addEventListener('click', () => entry(false));
-
-        async function entry(host) {
-            // AudioContextの有効化
-            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            audioCtx.resume();
-
+        // 入口処理
+        const entry = (host) => {
             isHost = host;
-            myName = document.getElementById('input-name').value || "プレイヤー";
+            myName = document.getElementById('input-name').value || "ななし";
             roomKey = "room_" + document.getElementById('input-room').value;
             myId = Math.random().toString(36).slice(2, 7);
             
             showScreen('screen-lobby');
-            if(host) {
-                document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
-            } else {
-                document.getElementById('guest-view').style.display = 'block';
-            }
+            if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
 
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
-            await set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: selectedColor });
+            set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
             onDisconnect(pRef).remove();
 
+            // Firebase 監視
             onValue(ref(db, `rooms/${roomKey}`), (snap) => {
                 const data = snap.val(); if(!data) return;
+                const prevData = currentData;
+                currentData = data;
+                
                 const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
                 document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
-                
-                if(data.config) {
-                    document.getElementById('view-g').innerText = data.config.g;
-                    document.getElementById('view-h').innerText = data.config.h;
-                    document.getElementById('view-r').innerText = data.config.r;
-                }
-                
-                if(data.status === "playing" && players[data.turnIdx]?.id !== lastTurnId) {
-                    lastTurnId = players[data.turnIdx]?.id;
-                    if(lastTurnId === myId) sounds.turn();
+
+                // カラー重複チェック（ロビー用）
+                updateColorDots(players);
+
+                // ターン・ミスの通知（ゲーム中のみ）
+                if(data.status === "playing") {
+                    const currentPlayer = players[data.turnIdx];
+                    if(currentPlayer?.id !== lastTurnId) {
+                        lastTurnId = currentPlayer?.id;
+                        if(lastTurnId === myId) sounds.turn();
+                    }
+                    if(prevData && data.wrongAll?.length > (prevData.wrongAll?.length || 0)) {
+                        showWrongToast(data.wrongAll[data.wrongAll.length-1]);
+                        sounds.wrong();
+                    }
                 }
 
-                if(currentData && data.wrongAll && data.wrongAll.length > (currentData.wrongAll?.length || 0)) {
-                    const newWrong = data.wrongAll[data.wrongAll.length - 1];
-                    showWrongToast(newWrong);
-                    sounds.wrong();
+                // 状態遷移のガード：statusが変わった時だけ画面を切り替える
+                if(data.status !== lastStatus) {
+                    lastStatus = data.status;
+                    if(data.status === "playing") initGame(data);
+                    else if(data.status === "finished") showResult(data, players);
+                    else if(data.status === "lobby") showScreen('screen-lobby');
+                } else if(data.status === "playing") {
+                    renderUI(data); // 状態が変わっていなくても、文字の当たりハズレは更新
                 }
+            });
+        };
 
-                currentData = data;
-                if(data.status === "playing") initGame(data);
-                if(data.status === "finished") showResult(data, players);
-                if(data.status === "lobby") showScreen('screen-lobby');
+        document.getElementById('btn-create').onclick = () => entry(true);
+        document.getElementById('btn-join').onclick = () => entry(false);
+
+        // カラー選択ロジック
+        function updateColorDots(players) {
+            const takenColors = players.filter(p => p.id !== myId).map(p => p.color);
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                const c = dot.dataset.color;
+                dot.classList.toggle('taken', takenColors.includes(c));
+                const myColor = players.find(p => p.id === myId)?.color;
+                dot.classList.toggle('selected', myColor === c);
+                dot.onclick = () => {
+                    if(!dot.classList.contains('taken')) {
+                        update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c });
+                    }
+                };
             });
         }
 
         function launchGame() {
-            const conf = currentData.config || {g: "たべもの", h: 17, r: 10};
-            const target = dictionary[conf.g][Math.floor(Math.random() * dictionary[conf.g].length)];
+            const target = dictionary[currentData.config?.g || "たべもの"][Math.floor(Math.random() * 5)];
             const allChars = kanaGroups.map(g => g.chars).join("").split("");
-            let removable = allChars.filter(c => !target.includes(c));
-            const removed = removable.sort(() => Math.random() - 0.5).slice(0, conf.r);
+            const removed = allChars.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
+            
             const updates = {};
             Object.keys(currentData.players).forEach(pid => {
                 updates[`players/${pid}/score`] = 0;
@@ -246,24 +237,16 @@
             });
             updates['status'] = "playing"; updates['target'] = target;
             updates['turnIdx'] = 0; updates['wrongAll'] = [];
-            updates['config'] = { ...conf, removed: removed };
+            updates['config'] = { g: document.getElementById('select-g').value, h: parseInt(document.getElementById('select-h').value), removed };
             update(ref(db, `rooms/${roomKey}`), updates);
         }
-
         document.getElementById('btn-start').onclick = launchGame;
         document.getElementById('btn-replay').onclick = launchGame;
 
-        function showWrongToast(char) {
-            const t = document.getElementById('wrong-toast');
-            t.innerText = `「${char}」はありません！`;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 1200);
-        }
-
         function initGame(data) {
-            if (!document.getElementById('screen-game').classList.contains('active')) {
-                myGuessed = []; myHearts = data.config.h; showScreen('screen-game');
-            }
+            myGuessed = [];
+            myHearts = data.config.h;
+            showScreen('screen-game');
             const kb = document.getElementById('keyboard');
             kb.innerHTML = "";
             kanaGroups.forEach(group => {
@@ -273,7 +256,7 @@
                 group.chars.split("").forEach(c => {
                     const k = document.createElement("div");
                     k.className = "key"; k.id = "k-" + c; k.innerText = c;
-                    if(data.config.removed.includes(c)) k.classList.add("removed");
+                    if(data.config.removed?.includes(c)) k.classList.add("removed");
                     k.onclick = () => handleGuess(c);
                     kb.appendChild(k);
                 });
@@ -290,21 +273,19 @@
             if(currentData.target.includes(char)) {
                 myGuessed.push(char);
                 sounds.correct();
+                update(ref(db, `rooms/${roomKey}/players/${myId}`), { score: myGuessed.length, guessedStr: myGuessed.join(",") });
             } else {
                 myHearts--;
                 const wa = currentData.wrongAll || [];
-                if(!wa.includes(char)) wa.push(char);
+                wa.push(char);
                 update(ref(db, `rooms/${roomKey}`), { wrongAll: wa });
             }
 
-            update(ref(db, `rooms/${roomKey}/players/${myId}`), { 
-                score: myGuessed.length, guessedStr: myGuessed.join(",") 
-            });
             const next = (currentData.turnIdx + 1) % pList.length;
             update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
 
             if(currentData.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
-                update(ref(db, `rooms/${roomKey}`), { status: "finished" });
+                setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 1000);
             }
         }
 
@@ -313,26 +294,26 @@
             display.innerHTML = "";
             data.target.split("").forEach(c => {
                 const s = document.createElement("div"); s.className = "slot";
-                if(myGuessed.includes(c)) s.innerText = c;
+                s.innerText = myGuessed.includes(c) ? c : "";
                 display.appendChild(s);
             });
-            data.target.split("").forEach(c => {
-                if(myGuessed.includes(c)) document.getElementById("k-"+c)?.classList.add("my-correct");
-            });
+            myGuessed.forEach(c => document.getElementById("k-"+c)?.classList.add("my-correct"));
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add("wrong-all"));
 
             const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
-            const currentPlayer = pList[data.turnIdx];
-            const isMy = (currentPlayer?.id === myId);
+            const curP = pList[data.turnIdx];
             const msg = document.getElementById('turn-msg');
-            
-            // 枠の色をプレイヤーのカラーに変更
-            msg.innerText = isMy ? "★ あなたの番です ★" : `${currentPlayer?.name}の番...`;
-            msg.style.borderColor = currentPlayer?.color || "#ddd";
-            msg.style.color = currentPlayer?.color || "#333";
-            msg.className = isMy ? "my-turn-anim" : "";
-            
+            msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
+            msg.style.borderColor = curP?.color;
+            msg.style.color = curP?.color;
             document.getElementById('heart-bar').innerText = "❤️".repeat(Math.max(0, myHearts));
+        }
+
+        function showWrongToast(char) {
+            const t = document.getElementById('wrong-toast');
+            t.innerText = `「${char}」はありません！`;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 1200);
         }
 
         function showResult(data, players) {
@@ -341,20 +322,11 @@
             const area = document.getElementById('res-ranking');
             area.innerHTML = "";
             const sorted = players.sort((a,b) => b.score - a.score);
-            const iWon = data.target.split("").every(c => myGuessed.includes(c));
-            if(iWon) sounds.win();
-            document.getElementById('res-status').innerText = iWon ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
-
+            if(data.target.split("").every(c => myGuessed.includes(c))) sounds.win();
             sorted.forEach((p, i) => {
-                const pG = p.guessedStr ? p.guessedStr.split(",") : [];
-                const progress = data.target.split("").map(c => pG.includes(c)?c:"_").join("");
-                area.innerHTML += `<div class="rank-row"><span style="color:${p.color}"><b>${i+1}位: ${p.name}</b></span><span style="font-family:monospace; color:#666;">${progress}</span><span style="color:var(--main)">${p.score}字</span></div>`;
+                area.innerHTML += `<div class="rank-row"><span style="color:${p.color}"><b>${i+1}位: ${p.name}</b></span><span>${p.score}文字</span></div>`;
             });
         }
-
-        document.getElementById('select-g').onchange = () => { if(isHost) update(ref(db, `rooms/${roomKey}/config`), {g: document.getElementById('select-g').value}); };
-        document.getElementById('select-h').onchange = () => { if(isHost) update(ref(db, `rooms/${roomKey}/config`), {h: parseInt(document.getElementById('select-h').value)}); };
-        document.getElementById('select-r').onchange = () => { if(isHost) update(ref(db, `rooms/${roomKey}/config`), {r: parseInt(document.getElementById('select-r').value)}); };
     </script>
 </body>
 </html>
