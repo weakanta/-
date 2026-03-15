@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v23</title>
+    <title>コトバ・サバイバル v24</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
         
-        /* 全体コンテナ */
         .game-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 15px; padding: 10px; max-width: 1000px; margin: 0 auto; }
-        
-        /* 左右の固定エリア（赤丸の位置） */
         .side-panel { width: 220px; flex-shrink: 0; margin-top: 15px; position: sticky; top: 15px; }
         .main-column { flex: 1; max-width: 480px; min-width: 320px; }
 
@@ -24,7 +21,6 @@
         .btn-primary { background: var(--main); color: white; }
         .btn-host { background: orange; color: white; width: 100%; margin-top: 15px; font-size: 1.2rem; }
         
-        /* 5列キーボード（絶対維持） */
         .kb-container { background: #e2e8f0; padding: 8px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .key { aspect-ratio: 1.1; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
         .key.my-correct { background: var(--sub) !important; color: white; box-shadow: none; }
@@ -32,7 +28,6 @@
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; box-shadow: none; }
         .key-group-label { grid-column: span 5; font-size: 0.75rem; color: #718096; text-align: left; padding: 6px 2px 2px; font-weight: bold; }
 
-        /* サイドのチャット・スタンプ */
         #chat-area { display: flex; flex-direction: column; height: 350px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 8px; padding: 8px; margin-bottom: 8px; border: 1px solid #eee; }
         #chat-input { padding: 10px; border-radius: 15px; border: 1px solid #ccc; font-size: 0.9rem; }
@@ -41,7 +36,6 @@
         .stamp-btn { font-size: 1.5rem; padding: 10px 0; border: none; background: #f0f3f5; border-radius: 12px; cursor: pointer; transition: 0.1s; box-shadow: 0 3px 0 #ddd; }
         .stamp-btn:active { transform: translateY(2px); box-shadow: none; }
 
-        /* その他UI部品 */
         #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; }
         .slot { width: 28px; height: 38px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
         #progress-area { margin-bottom: 15px; background: #f9f9f9; padding: 8px; border-radius: 10px; }
@@ -51,7 +45,9 @@
         
         #stamp-popup { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 30px; border-radius: 40px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; pointer-events: none; font-size: 1.5rem; }
         #stamp-popup.show { transform: translate(-50%, -50%) scale(1); }
-        
+        #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 30px; border-radius: 15px; z-index: 9999; transition: 0.3s; font-size: 1.5rem; pointer-events: none; }
+        #wrong-toast.show { transform: translate(-50%, -50%) scale(1); }
+
         @media (max-width: 900px) {
             .game-wrapper { flex-direction: column; align-items: center; }
             .side-panel { width: 94%; max-width: 500px; position: static; order: 2; }
@@ -62,7 +58,7 @@
 <body>
 
     <div id="stamp-popup"></div>
-    <div id="wrong-toast" style="position:fixed; top:40%; left:50%; transform:translate(-50%,-50%) scale(0); background:rgba(0,0,0,0.8); color:white; padding:20px; border-radius:15px; z-index:999; transition:0.3s; pointer-events:none;"></div>
+    <div id="wrong-toast"></div>
 
     <div class="game-wrapper">
         <div class="side-panel" id="side-left" style="display:none;">
@@ -93,24 +89,24 @@
                 </div>
                 <p>メンバー: <span id="lobby-members">---</span></p>
                 <div class="host-only" style="display:none;">
-                    <select id="select-g"></select>
-                    <input type="number" id="select-h" value="17" style="width:100px;">
+                    <select id="select-g" style="width:100%"></select>
+                    <label>ライフ: <input type="number" id="select-h" value="17" style="width:100px;"></label>
                 </div>
                 <button id="btn-start" class="btn btn-host host-only" style="display:none;">開始！</button>
             </div>
 
             <div id="screen-game" class="screen panel">
                 <div id="turn-msg">準備中...</div>
-                <div id="heart-status"><span id="heart-icons">❤️</span><span id="heart-count"></span></div>
-                <div id="word-display" style="display:flex; justify-content:center; margin:15px 0;"></div>
+                <div id="heart-status"><span id="heart-icons" style="color:var(--danger)">❤️</span><span id="heart-count" style="font-weight:bold"></span></div>
+                <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin:15px 0;"></div>
                 <div id="progress-area"></div>
                 <div id="keyboard" class="kb-container"></div>
             </div>
 
             <div id="screen-result" class="screen panel">
-                <h1 id="res-status">RESULT</h1>
-                <h2 id="res-word"></h2>
-                <div id="res-ranking"></div>
+                <h1 id="res-status" style="font-size:2.5rem;">RESULT</h1>
+                <h2 id="res-word" style="background:#eee; padding:15px; border-radius:10px;"></h2>
+                <div id="res-ranking" style="text-align:left; margin:20px 0;"></div>
                 <button id="btn-replay" class="btn btn-host host-only" style="display:none;">もう一度</button>
             </div>
         </div>
@@ -131,7 +127,6 @@
         import { getDatabase, ref, set, onValue, update, onDisconnect, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { dictionary } from "./questions.js";
 
-        // Firebase設定（既存のまま）
         const firebaseConfig = {
             apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
             authDomain: "airhockey-1e251.firebaseapp.app",
@@ -141,8 +136,21 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
-        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastStampTime = 0;
+        // --- サウンド機能復活 ---
+        let audioCtx;
+        function playTone(freq, duration, type = "sine") {
+            try {
+                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
 
         const kanaGroups = [
             { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" },
@@ -153,26 +161,26 @@
             { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
         ];
 
-        // 共通：チャットとスタンプの表示
-        function showSidePanels() {
-            document.getElementById('side-left').style.display = 'block';
-            document.getElementById('side-right').style.display = 'block';
-        }
+        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
+        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastStampTime = 0;
 
         const entry = (host) => {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            audioCtx.resume();
             isHost = host;
             myName = document.getElementById('input-name').value || "ななし";
             roomKey = "room_" + (document.getElementById('input-room').value || "123");
             myId = Math.random().toString(36).slice(2, 7);
             
             showScreen('screen-lobby');
-            showSidePanels(); // 待機画面でも表示
+            document.getElementById('side-left').style.display = 'block';
+            document.getElementById('side-right').style.display = 'block';
             if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
             
             const roomRef = ref(db, `rooms/${roomKey}`);
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
             
-            if(host) set(roomRef, { status: "lobby", lastStamp: {time:0} });
+            if(host) set(roomRef, { status: "lobby", lastStamp: {time:0}, lastWrong: {time:0} });
             set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
             onDisconnect(pRef).remove();
 
@@ -181,9 +189,22 @@
                 currentData = data;
                 const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
                 document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
+                updateColorDots(players);
                 
-                if(data.lastStamp && data.lastStamp.time > lastStampTime) {
-                    lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp);
+                if(data.status === "playing") {
+                    if(data.lastStamp && data.lastStamp.time > lastStampTime) {
+                        lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp);
+                    }
+                    if(data.lastWrong && data.lastWrong.time > lastWrongTime) {
+                        lastWrongTime = data.lastWrong.time;
+                        showWrongToast(data.lastWrong.char);
+                        playTone(220, 0.3, "square");
+                    }
+                    const curP = players[data.turnIdx];
+                    if(curP?.id !== lastTurnId) {
+                        lastTurnId = curP?.id;
+                        if(lastTurnId === myId) playTone(440, 0.05, "triangle");
+                    }
                 }
                 
                 if(data.status !== lastStatus) {
@@ -194,7 +215,6 @@
                 } else if(data.status === "playing") { renderUI(data); }
             });
 
-            // チャット受信
             onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
                 const box = document.getElementById('chat-box'); box.innerHTML = "";
                 const chats = snap.val();
@@ -207,7 +227,6 @@
             });
         };
 
-        // エンターキー送信
         document.getElementById('chat-input').addEventListener('keypress', (e) => {
             if(e.key === 'Enter') {
                 const i = document.getElementById('chat-input'); if(!i.value) return;
@@ -224,15 +243,21 @@
             const p = document.getElementById('stamp-popup');
             p.innerText = `${stamp.sender}: ${stamp.emoji}`;
             p.classList.add('show');
-            setTimeout(() => p.classList.remove('show'), 1500); // 1500msに戻す
+            const tones = { '👏': [800, 1000], '👍': [400, 600, 800], '😮': [600, 400], '😭': [300, 200], '💢': [150, 150] };
+            (tones[stamp.emoji] || [440]).forEach((f, i) => setTimeout(() => playTone(f, 0.2), i * 100));
+            setTimeout(() => p.classList.remove('show'), 1500);
         }
 
-        document.getElementById('btn-create').onclick = () => entry(true);
-        document.getElementById('btn-join').onclick = () => entry(false);
+        function updateColorDots(players) {
+            const taken = players.filter(p => p.id !== myId).map(p => p.color);
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                const c = dot.dataset.color;
+                dot.onclick = () => { if(!taken.includes(c)) update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c }); };
+            });
+        }
 
-        // ゲーム初期化（キーボード生成など）
         function initGame(data) {
-            myGuessed = []; myHearts = data.config.h;
+            myGuessed = []; myHearts = data.config.h; lastTurnId = "";
             showScreen('screen-game');
             const kb = document.getElementById('keyboard'); kb.innerHTML = "";
             kanaGroups.forEach(group => {
@@ -255,15 +280,20 @@
             
             if(currentData.target.includes(char)) {
                 myGuessed.push(char);
+                playTone(880, 0.1); setTimeout(() => playTone(1320, 0.15), 100);
                 update(ref(db, `rooms/${roomKey}/players/${myId}`), { score: myGuessed.length, guessedStr: myGuessed.join(",") });
             } else {
                 myHearts--;
                 const wa = currentData.wrongAll || []; wa.push(char);
                 update(ref(db, `rooms/${roomKey}`), { wrongAll: wa, lastWrong: { char: char, time: Date.now() } });
             }
-            update(ref(db, `rooms/${roomKey}`), { turnIdx: (currentData.turnIdx + 1) % pList.length });
-            if(currentData.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
+
+            // --- 終了判定ロジック ---
+            const isCleared = currentData.target.split("").every(c => myGuessed.includes(c));
+            if(isCleared || myHearts <= 0) {
                 setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 500);
+            } else {
+                update(ref(db, `rooms/${roomKey}`), { turnIdx: (currentData.turnIdx + 1) % pList.length });
             }
         }
 
@@ -288,20 +318,47 @@
             document.querySelectorAll('.key').forEach(k => k.classList.remove('my-correct', 'wrong-all'));
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
             myGuessed.forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
+            
+            const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
+            const curP = pList[data.turnIdx];
+            const msg = document.getElementById('turn-msg');
+            msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
+            msg.style.borderColor = curP?.color || "#ddd";
             document.getElementById('heart-count').innerText = " × " + Math.max(0, myHearts);
+        }
+
+        function showWrongToast(char) {
+            const t = document.getElementById('wrong-toast');
+            t.innerText = `「${char}」はありません！`;
+            t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1200);
+        }
+
+        function showResult(data, players) {
+            showScreen('screen-result');
+            document.getElementById('res-word').innerText = "正解: " + data.target;
+            const area = document.getElementById('res-ranking'); area.innerHTML = "";
+            const sorted = players.sort((a,b) => b.score - a.score);
+            document.getElementById('res-status').innerText = (sorted[0].id === myId) ? "YOU WIN!" : "GAME OVER";
+            sorted.forEach((p, i) => {
+                area.innerHTML += `<div style="border-bottom:1px solid #eee; padding:10px 0;"><div style="font-weight:bold; color:${p.color}; font-size:1.2rem;">${i+1}位: ${p.name} (${p.score}文字)</div></div>`;
+            });
         }
 
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         
-        // ジャンル初期化
         const gSel = document.getElementById('select-g');
         Object.keys(dictionary).forEach(g => { const o = document.createElement('option'); o.value=g; o.innerText=g; gSel.appendChild(o); });
 
+        document.getElementById('btn-create').onclick = () => entry(true);
+        document.getElementById('btn-join').onclick = () => entry(false);
         document.getElementById('btn-start').onclick = () => {
             const g = document.getElementById('select-g').value;
             const target = dictionary[g][Math.floor(Math.random()*dictionary[g].length)];
-            update(ref(db, `rooms/${roomKey}`), { status: "playing", target: target, turnIdx: 0, config: {g:g, h:parseInt(document.getElementById('select-h').value), removed:[]} });
+            const allChars = kanaGroups.map(gr => gr.chars).join("").split("");
+            const removed = allChars.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
+            update(ref(db, `rooms/${roomKey}`), { status: "playing", target: target, turnIdx: 0, wrongAll: [], config: {g:g, h:parseInt(document.getElementById('select-h').value), removed:removed} });
         };
+        document.getElementById('btn-replay').onclick = () => document.getElementById('btn-start').click();
     </script>
 </body>
 </html>
