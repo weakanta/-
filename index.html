@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v38.1</title>
+    <title>コトバ・サバイバル v38.2</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -24,7 +24,7 @@
         .btn-host { background: orange; color: white; margin-top: 10px; box-shadow: 0 4px 0 #d35400; }
         .btn-cpu { background: #8e44ad; color: white; margin-top: 10px; padding: 12px; }
 
-        /* ジャンル選択の微調整（修正ポイント） */
+        /* ジャンル選択の微調整 */
         .genre-sel-box { background:#f8f9fa; padding:15px; border-radius:15px; margin-bottom:20px; text-align:left; }
         .genre-option { display: flex; align-items: center; margin: 10px 0; cursor: pointer; }
         .genre-option input[type="radio"] { width: 22px !important; height: 22px !important; margin: 0 10px 0 0 !important; cursor: pointer; }
@@ -44,7 +44,10 @@
         .progress-item { background: #f8f9fa; padding: 8px 12px; border-radius: 12px; margin-bottom: 6px; text-align: left; font-size: 0.9rem; border-left: 5px solid transparent; }
         .player-card { padding: 8px 15px; border-radius: 20px; background: #eee; font-size: 1rem; font-weight: bold; }
 
+        /* チャット入力欄のはみ出し修正（修正ポイント） */
         #chat-box { height: 280px; overflow-y: auto; text-align: left; font-size: 0.9rem; background: #f8f9fa; border-radius: 10px; padding: 12px; border: 1px solid #eee; margin-bottom: 10px; }
+        #chat-input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+
         .stamp-btn { font-size: 1.8rem; height: 70px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 15px; }
 
         #toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.9); color: white; padding: 20px 30px; border-radius: 20px; z-index: 9999; transition: 0.3s; pointer-events: none; font-weight: bold; font-size: 1.2rem; }
@@ -63,7 +66,7 @@
         <div class="side-panel" id="side-left" style="display:none;">
             <div class="panel" style="padding:15px;">
                 <div id="chat-box"></div>
-                <input type="text" id="chat-input" placeholder="メッセージ..." style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                <input type="text" id="chat-input" placeholder="メッセージ...">
                 <button id="sound-btn" onclick="toggleSnd()" style="width:100%; padding:10px; border-radius:10px; border:none; background:#2ed573; color:white; font-weight:bold; cursor:pointer; margin-top:10px;">🔊 音: ON</button>
             </div>
         </div>
@@ -102,6 +105,7 @@
                 </div>
                 <div class="host-only" style="display:none; margin-top:20px; border-top:2px solid #eee; padding-top:20px;">
                     <button id="btn-add-cpu" class="btn btn-cpu">🤖 CPUを追加</button>
+                    <button id="btn-remove-cpu" class="btn btn-cpu" style="background:#c0392b; margin-top:5px;">🤖 CPUを減らす</button>
                     <div style="margin-top:15px;">初期風船: <input type="number" id="input-h" value="17" style="width:70px; padding:10px; font-size:1.1rem;"> 🎈</div>
                     <button id="btn-start" class="btn btn-host" style="margin-top:15px;">ゲーム開始！！</button>
                 </div>
@@ -294,7 +298,10 @@
 
         function renderVotes(data) {
             const container = document.getElementById('vote-buttons'); container.innerHTML = "";
-            const genres = ["オールジャンル", ...Object.keys(dictionary)];
+            // オールジャンルの重複を防ぐ（修正ポイント）
+            const dictKeys = Object.keys(dictionary);
+            const genres = dictKeys.includes("オールジャンル") ? dictKeys : ["オールジャンル", ...dictKeys];
+
             document.getElementById('vote-msg').innerText = data.genreMode === "vote" ? "🎨 ジャンル投票" : "👑 ホストが選択中";
             genres.forEach(g => {
                 const btn = document.createElement('button'); btn.className = 'btn';
@@ -340,7 +347,7 @@
             } else {
                 updates[`players/${pid}/hearts`] = (p.hearts || 0) - 1;
                 const wa = data.wrongAll || []; wa.push(char); updates[`wrongAll`] = wa;
-                updates[`lastMsg`] = { text: `「${char}」ではありません！`, time: Date.now() };
+                updates[`lastMsg`] = { text: `「${char}」はありません！`, time: Date.now() };
                 updates[`lastSnd`] = updates[`lastSnd`] || { type: 'ng', time: Date.now() };
             }
             updates[`turnIdx`] = (data.turnIdx + 1) % pKeys.length;
@@ -405,6 +412,11 @@
         document.getElementById('btn-add-cpu').onclick = () => {
             const id = "cpu_" + Math.random().toString(36).slice(2, 7); const taken = Object.values(currentData.players).map(p => p.color);
             update(ref(db, `rooms/${roomKey}/players/${id}`), { name: "🤖 CPU", color: colors.find(c => !taken.includes(c)) || colors[0], hearts: 17, score: 0, guessed: "", items: [], isCPU: true });
+        };
+        // CPUを減らす（修正ポイント）
+        document.getElementById('btn-remove-cpu').onclick = () => {
+            const cpuIds = Object.keys(currentData.players).filter(k => currentData.players[k].isCPU);
+            if(cpuIds.length > 0) remove(ref(db, `rooms/${roomKey}/players/${cpuIds[cpuIds.length - 1]}`));
         };
         document.getElementById('btn-replay').onclick = () => update(ref(db, `rooms/${roomKey}`), { status: "lobby", votes: {} });
         document.getElementById('btn-start').onclick = () => {
