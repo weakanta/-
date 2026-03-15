@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル Pro v12</title>
+    <title>コトバ・サバイバル Pro v13</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -22,11 +22,11 @@
         .kb-container { background: #e2e8f0; padding: 6px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
         .key { aspect-ratio: 1.2; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
         .key.my-correct { background: var(--sub) !important; color: white; }
-        .key.others-correct { color: white; position: relative; }
+        /* 他人が正解した文字は、キーボード上では見た目を変えない（クラスを削除または空に） */
         .key.wrong-all { background: var(--danger) !important; color: white; }
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; }
         .key-group-label { grid-column: span 5; font-size: 0.65rem; color: #718096; text-align: left; padding: 4px 2px 0; }
-        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; }
+        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; transition: 0.2s; }
         #wrong-toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 20px 30px; border-radius: 15px; z-index: 9999; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-size: 1.5rem; }
         #wrong-toast.show { transform: translate(-50%, -50%) scale(1); }
         .slot { width: 26px; height: 36px; border-bottom: 3px solid #ccc; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
@@ -139,7 +139,7 @@
         ];
 
         let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
-        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0;
+        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastTotalScore = 0;
 
         const entry = (host) => {
             if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -166,7 +166,15 @@
                     const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
                     document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
                     updateColorDots(players);
+                    
                     if(data.status === "playing") {
+                        // 誰かが正解したときの通知（音）
+                        const currentTotalScore = players.reduce((sum, p) => sum + (p.score || 0), 0);
+                        if(currentTotalScore > lastTotalScore) {
+                            if(lastTurnId !== myId) playTone(660, 0.1, "sine"); // 自分が当てた時以外に鳴らす
+                            lastTotalScore = currentTotalScore;
+                        }
+
                         const currentPlayer = players[data.turnIdx];
                         if(currentPlayer?.id !== lastTurnId) {
                             lastTurnId = currentPlayer?.id;
@@ -180,7 +188,7 @@
                     }
                     if(data.status !== lastStatus) {
                         lastStatus = data.status;
-                        if(data.status === "playing") initGame(data);
+                        if(data.status === "playing") { lastTotalScore = 0; initGame(data); }
                         else if(data.status === "finished") showResult(data, players);
                         else if(data.status === "lobby") { showScreen('screen-lobby'); lastStatus = "lobby"; }
                     } else if(data.status === "playing") { renderUI(data); }
@@ -248,7 +256,8 @@
             const pList = Object.entries(currentData.players).map(([id, p]) => ({id, ...p}));
             if(pList[currentData.turnIdx].id !== myId) return;
             const btn = document.getElementById("k-"+char);
-            if(btn.classList.contains('wrong-all') || btn.classList.contains('my-correct') || btn.classList.contains('others-correct')) return;
+            // 自分の正解、または全員のミスですでに使われている場合は反応しない
+            if(btn.classList.contains('wrong-all') || btn.classList.contains('my-correct')) return;
             
             if(currentData.target.includes(char)) {
                 myGuessed.push(char);
@@ -263,7 +272,6 @@
             const next = (currentData.turnIdx + 1) % pList.length;
             update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
             
-            // ★修正ポイント：全プレイヤーが当てた文字の集合を正しく計算
             setTimeout(() => {
                 onValue(ref(db, `rooms/${roomKey}`), (snap) => {
                     const d = snap.val();
@@ -284,22 +292,26 @@
                 s.innerText = myGuessed.includes(c) ? c : "";
                 display.appendChild(s);
             });
+            
+            // キーボードの更新
             document.querySelectorAll('.key').forEach(k => {
-                k.classList.remove('my-correct', 'others-correct', 'wrong-all'); k.style.backgroundColor = "";
+                k.classList.remove('my-correct', 'wrong-all');
+                k.style.backgroundColor = "";
             });
+            // ミス文字は全員に共有
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
-            Object.entries(data.players).forEach(([pid, p]) => {
-                (p.guessedStr || "").split(",").filter(s => s !== "").forEach(c => {
-                    const k = document.getElementById("k-"+c); if(!k) return;
-                    if(pid === myId) k.classList.add("my-correct");
-                    else { k.classList.add("others-correct"); k.style.backgroundColor = p.color; }
-                });
+            // 自分の正解文字だけを色付け（他人の正解はここでは反映しない）
+            myGuessed.forEach(c => {
+                document.getElementById("k-"+c)?.classList.add('my-correct');
             });
+
             const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
             const curP = pList[data.turnIdx];
             const msg = document.getElementById('turn-msg');
             msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
-            msg.style.borderColor = curP?.color; msg.style.color = curP?.color;
+            msg.style.borderColor = curP?.color; 
+            msg.style.color = curP?.color;
+            
             document.getElementById('heart-icons').innerText = "❤️";
             document.getElementById('heart-count').innerText = " × " + Math.max(0, myHearts);
         }
