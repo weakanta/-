@@ -38,4 +38,292 @@
 </head>
 <body>
 
-    <div id="wrong
+    <div id="wrong-toast"></div>
+
+    <div id="screen-entry" class="screen active panel">
+        <h1 style="color:var(--main)">コトバ・サバイバル</h1>
+        <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー"><br>
+        <input type="text" id="input-room" placeholder="部屋ID" value="123"><br>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button id="btn-create" class="btn btn-primary" style="flex:1">部屋を作る</button>
+            <button id="btn-join" class="btn btn-primary" style="flex:1; background:var(--sub)">参加する</button>
+        </div>
+    </div>
+
+    <div id="screen-lobby" class="screen panel">
+        <h2>待機ロビー</h2>
+        <div class="color-picker" id="lobby-color-picker">
+            <div class="color-dot" style="background:#4a90e2" data-color="#4a90e2"></div>
+            <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div>
+            <div class="color-dot" style="background:#2ed573" data-color="#2ed573"></div>
+            <div class="color-dot" style="background:#ffa502" data-color="#ffa502"></div>
+            <div class="color-dot" style="background:#af7ac5" data-color="#af7ac5"></div>
+            <div class="color-dot" style="background:#576574" data-color="#576574"></div>
+        </div>
+        <div style="text-align:left; background:#f9f9f9; padding:15px; border-radius:12px;">
+            <p><b>メンバー:</b> <span id="lobby-members">---</span></p>
+            <div class="host-only">
+                <hr>
+                <label>ジャンル:</label><br>
+                <select id="select-g"></select><br>
+                <label>ライフ: <input type="number" id="select-h" value="17" style="width:50px;"></label>
+            </div>
+        </div>
+        <button id="btn-start" class="btn btn-host host-only">ゲームを開始！</button>
+        <p id="guest-msg" style="font-size:0.8rem; color:#666;">ホストの開始待ち...</p>
+    </div>
+
+    <div id="screen-game" class="screen panel">
+        <div id="turn-msg">準備中...</div>
+        <div id="heart-status" style="margin-bottom:10px;">
+            <span id="heart-icons" style="color:var(--danger); font-size:1.1rem;"></span>
+            <span id="heart-count" style="font-weight:bold; margin-left:5px;"></span>
+        </div>
+        <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:15px;"></div>
+        <div id="keyboard" class="kb-container"></div>
+    </div>
+
+    <div id="screen-result" class="screen panel">
+        <h1 id="res-status">RESULT</h1>
+        <h2 id="res-word" style="color:var(--main)"></h2>
+        <div id="res-ranking"></div>
+        <button id="btn-replay" class="btn btn-host host-only">もう一度遊ぶ</button>
+        <button onclick="location.reload()" class="btn btn-primary" style="width:100%; margin-top:10px;">終了</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { dictionary } from "./questions.js";
+
+        const selectG = document.getElementById('select-g');
+        Object.keys(dictionary).forEach(genre => {
+            const opt = document.createElement('option');
+            opt.value = genre; opt.innerText = genre; selectG.appendChild(opt);
+        });
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
+            authDomain: "airhockey-1e251.firebaseapp.app",
+            projectId: "airhockey-1e251",
+            databaseURL: "https://airhockey-1e251-default-rtdb.asia-southeast1.firebasedatabase.app",
+            storageBucket: "airhockey-1e251.appspot.com",
+            messagingSenderId: "15014810791",
+            appId: "1:15014810791:web:7dc84e7143d495cf97b782"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let audioCtx;
+        function playTone(freq, duration, type = "sine") {
+            try {
+                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        const kanaGroups = [
+            { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" },
+            { label: "さ行", chars: "さしすせそ" }, { label: "たち行", chars: "たちつてと" },
+            { label: "な行", chars: "なにぬねの" }, { label: "は行", chars: "はひふへほ" },
+            { label: "ま行", chars: "まみむめも" }, { label: "や行", chars: "やゆよ" },
+            { label: "ら行", chars: "らりるれろ" }, { label: "わ行", chars: "わをんー" },
+            { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
+        ];
+
+        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
+        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0;
+
+        const entry = (host) => {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            audioCtx.resume();
+            isHost = host;
+            myName = document.getElementById('input-name').value || "ななし";
+            roomKey = "room_" + (document.getElementById('input-room').value || "123");
+            myId = Math.random().toString(36).slice(2, 7);
+            showScreen('screen-lobby');
+            if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
+            const roomRef = ref(db, `rooms/${roomKey}`);
+            const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
+            const defaultGenre = Object.keys(dictionary)[0] || "オールジャンル";
+
+            const joinTask = host ? set(roomRef, { 
+                status: "lobby", config: { g: defaultGenre, h: 17 }, lastWrong: { char: "", time: 0 }
+            }) : Promise.resolve();
+            joinTask.then(() => {
+                set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
+                onDisconnect(pRef).remove();
+                onValue(roomRef, (snap) => {
+                    const data = snap.val(); if(!data) return;
+                    currentData = data;
+                    const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
+                    document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
+                    updateColorDots(players);
+                    if(data.status === "playing") {
+                        const currentPlayer = players[data.turnIdx];
+                        if(currentPlayer?.id !== lastTurnId) {
+                            lastTurnId = currentPlayer?.id;
+                            if(lastTurnId === myId) playTone(440, 0.05, "triangle");
+                        }
+                        if(data.lastWrong && data.lastWrong.time > lastWrongTime) {
+                            lastWrongTime = data.lastWrong.time;
+                            showWrongToast(data.lastWrong.char);
+                            playTone(220, 0.3, "square");
+                        }
+                    }
+                    if(data.status !== lastStatus) {
+                        lastStatus = data.status;
+                        if(data.status === "playing") initGame(data);
+                        else if(data.status === "finished") showResult(data, players);
+                        else if(data.status === "lobby") { showScreen('screen-lobby'); lastStatus = "lobby"; }
+                    } else if(data.status === "playing") { renderUI(data); }
+                });
+            });
+        };
+
+        document.getElementById('btn-create').onclick = () => entry(true);
+        document.getElementById('btn-join').onclick = () => entry(false);
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function updateColorDots(players) {
+            const takenColors = players.filter(p => p.id !== myId).map(p => p.color);
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                const c = dot.dataset.color;
+                const isTaken = takenColors.includes(c);
+                const isMine = players.find(p => p.id === myId)?.color === c;
+                dot.classList.toggle('taken', isTaken);
+                dot.classList.toggle('selected', isMine);
+                dot.onclick = () => { if(!isTaken) update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c }); };
+            });
+        }
+
+        function launchGame() {
+            if(!isHost) return;
+            const genre = document.getElementById('select-g').value;
+            const targetList = dictionary[genre];
+            const target = targetList[Math.floor(Math.random() * targetList.length)];
+            const allChars = kanaGroups.map(g => g.chars).join("").split("");
+            const removed = allChars.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
+            const updates = {};
+            Object.keys(currentData.players).forEach(pid => { updates[`players/${pid}/score`] = 0; updates[`players/${pid}/guessedStr`] = ""; });
+            updates['status'] = "playing"; updates['target'] = target; updates['turnIdx'] = 0; updates['wrongAll'] = [];
+            updates['lastWrong'] = { char: "", time: 0 };
+            updates['config'] = { g: genre, h: parseInt(document.getElementById('select-h').value), removed };
+            update(ref(db, `rooms/${roomKey}`), updates);
+        }
+        document.getElementById('btn-start').onclick = launchGame;
+        document.getElementById('btn-replay').onclick = launchGame;
+
+        function initGame(data) {
+            myGuessed = []; myHearts = data.config.h; lastWrongTime = 0;
+            showScreen('screen-game');
+            const kb = document.getElementById('keyboard'); kb.innerHTML = "";
+            kanaGroups.forEach(group => {
+                const label = document.createElement("div");
+                label.className = "key-group-label"; label.innerText = group.label;
+                kb.appendChild(label);
+                group.chars.split("").forEach(c => {
+                    const k = document.createElement("div");
+                    k.className = "key"; k.id = "k-" + c; k.innerText = c;
+                    if(data.config.removed?.includes(c)) k.classList.add("removed");
+                    k.onclick = () => handleGuess(c);
+                    kb.appendChild(k);
+                });
+            });
+            renderUI(data);
+        }
+
+        function handleGuess(char) {
+            const pList = Object.entries(currentData.players).map(([id, p]) => ({id, ...p}));
+            if(pList[currentData.turnIdx].id !== myId) return;
+            const btn = document.getElementById("k-"+char);
+            if(btn.classList.contains('wrong-all') || btn.classList.contains('my-correct') || btn.classList.contains('others-correct')) return;
+            
+            if(currentData.target.includes(char)) {
+                myGuessed.push(char);
+                playTone(880, 0.1); setTimeout(() => playTone(1320, 0.15), 100);
+                update(ref(db, `rooms/${roomKey}/players/${myId}`), { score: myGuessed.length, guessedStr: myGuessed.join(",") });
+            } else {
+                myHearts--;
+                const wa = currentData.wrongAll || []; wa.push(char);
+                update(ref(db, `rooms/${roomKey}`), { wrongAll: wa, lastWrong: { char: char, time: Date.now() } });
+            }
+            
+            const next = (currentData.turnIdx + 1) % pList.length;
+            update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
+            
+            // ★修正ポイント：全プレイヤーが当てた文字の集合を正しく計算
+            setTimeout(() => {
+                onValue(ref(db, `rooms/${roomKey}`), (snap) => {
+                    const d = snap.val();
+                    const allGuessed = Object.values(d.players).flatMap(p => (p.guessedStr || "").split(",")).filter(s => s !== "");
+                    const isWin = d.target.split("").every(c => allGuessed.includes(c));
+                    if(isWin || myHearts <= 0) {
+                        update(ref(db, `rooms/${roomKey}`), { status: "finished" });
+                    }
+                }, { onlyOnce: true });
+            }, 100);
+        }
+
+        function renderUI(data) {
+            const display = document.getElementById('word-display');
+            display.innerHTML = "";
+            data.target.split("").forEach(c => {
+                const s = document.createElement("div"); s.className = "slot";
+                s.innerText = myGuessed.includes(c) ? c : "";
+                display.appendChild(s);
+            });
+            document.querySelectorAll('.key').forEach(k => {
+                k.classList.remove('my-correct', 'others-correct', 'wrong-all'); k.style.backgroundColor = "";
+            });
+            if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
+            Object.entries(data.players).forEach(([pid, p]) => {
+                (p.guessedStr || "").split(",").filter(s => s !== "").forEach(c => {
+                    const k = document.getElementById("k-"+c); if(!k) return;
+                    if(pid === myId) k.classList.add("my-correct");
+                    else { k.classList.add("others-correct"); k.style.backgroundColor = p.color; }
+                });
+            });
+            const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
+            const curP = pList[data.turnIdx];
+            const msg = document.getElementById('turn-msg');
+            msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
+            msg.style.borderColor = curP?.color; msg.style.color = curP?.color;
+            document.getElementById('heart-icons').innerText = "❤️";
+            document.getElementById('heart-count').innerText = " × " + Math.max(0, myHearts);
+        }
+
+        function showWrongToast(char) {
+            if(!char) return;
+            const t = document.getElementById('wrong-toast');
+            t.innerText = `「${char}」はありません！`;
+            t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1200);
+        }
+
+        function showResult(data, players) {
+            showScreen('screen-result');
+            document.getElementById('res-word').innerText = "正解: " + data.target;
+            const area = document.getElementById('res-ranking'); area.innerHTML = "";
+            const sorted = players.sort((a,b) => b.score - a.score);
+            const allGuessedByMe = data.target.split("").every(c => myGuessed.includes(c));
+            if(allGuessedByMe) [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 0.3), i * 150));
+            document.getElementById('res-status').innerText = "GAME FINISHED";
+            sorted.forEach((p, i) => {
+                const gList = (p.guessedStr || "").split(",").filter(s => s !== "").join(", ");
+                area.innerHTML += `<div class="rank-row"><div class="rank-main"><span style="color:${p.color}">${i+1}位: ${p.name}</span><span>${p.score}文字</span></div><div class="rank-sub">当てた文字: ${gList || "なし"}</div></div>`;
+            });
+        }
+    </script>
+</body>
+</html>
