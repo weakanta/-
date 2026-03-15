@@ -3,47 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v18</title>
+    <title>コトバ・サバイバル v19</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
-        body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background: var(--bg); font-family: sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; color: #333; }
         
-        .screen { display: none; flex: 1; flex-direction: column; padding: 8px; box-sizing: border-box; }
+        .screen { display: none; flex: 1; flex-direction: column; padding: 15px; box-sizing: border-box; }
         .active { display: flex; }
-        .panel { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); margin-bottom: 8px; }
+        .panel { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 10px; }
 
-        /* ロビー（デカく） */
-        #screen-lobby h2 { font-size: 2.2rem; color: var(--main); margin: 10px 0; }
-        .member-card { font-size: 1.3rem; font-weight: bold; padding: 12px; background: white; border: 2px solid #ddd; border-radius: 10px; margin: 8px 0; }
+        /* エントリー・ロビー（大きく） */
+        #screen-entry h1, #screen-lobby h2 { font-size: 2.2rem; color: var(--main); margin-bottom: 20px; text-align: center; }
+        .input-big { width: 90%; padding: 15px; font-size: 1.2rem; margin-bottom: 15px; border-radius: 10px; border: 1px solid #ccc; display: block; margin-left: auto; margin-right: auto; }
+        .member-card { font-size: 1.4rem; font-weight: bold; padding: 15px; background: #eef2f7; border-radius: 10px; margin: 10px 0; text-align: center; }
 
         /* ゲーム表示 */
-        .slot { width: 22px; height: 32px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 1px; }
-        .turn-indicator { font-size: 0.9rem; font-weight: bold; padding: 6px; border-radius: 8px; border: 2px solid #eee; margin-bottom: 5px; background: white; }
+        .slot { width: 22px; height: 35px; border-bottom: 3px solid #ccc; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
+        .turn-indicator { font-size: 1rem; font-weight: bold; padding: 8px; border-radius: 10px; border: 2px solid #ddd; margin-bottom: 10px; text-align: center; background: white; }
 
-        /* 10列キーボード（復活＆文字デカ） */
-        .kb-container { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #e2e8f0; padding: 3px; border-radius: 8px; }
-        .key { aspect-ratio: 0.85; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; 
-               font-size: 1.1rem; font-weight: 900; cursor: pointer; box-shadow: 0 1px 0 #cbd5e0; color: #333; }
-        .key:active { transform: translateY(1px); box-shadow: none; }
+        /* 初期の6列キーボード（復活） */
+        .kb-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; background: #cbd5e0; padding: 5px; border-radius: 10px; }
+        .key { aspect-ratio: 1; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; 
+               font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #a0aec0; }
+        .key:active { transform: translateY(2px); box-shadow: none; }
         .key.my-correct { background: var(--sub) !important; color: white; box-shadow: none; }
         .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: none; }
-        .key.removed { background: #cbd5e0 !important; opacity: 0.2; pointer-events: none; }
+        .key.removed { background: #e2e8f0 !important; opacity: 0.2; pointer-events: none; }
 
         /* 進捗（コンパクト） */
-        .prog-row { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; justify-content: center; margin-bottom: 2px; }
-        .p-dot { width: 7px; height: 7px; background: #ddd; border-radius: 50%; }
+        .prog-row { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; justify-content: center; margin-bottom: 4px; }
+        .p-dot { width: 8px; height: 8px; background: #ddd; border-radius: 2px; }
         .p-dot.filled { background: var(--sub); }
 
-        /* 下部UI（チャット・スタンプ固定） */
-        .bottom-ui { background: white; border-top: 1px solid #ddd; padding: 6px; }
-        #chat-box { height: 60px; overflow-y: auto; text-align: left; font-size: 0.8rem; padding: 4px; background: #f8f9fa; border-radius: 8px; margin-bottom: 4px; border: 1px solid #eee; }
-        .stamp-row { display: flex; justify-content: space-around; font-size: 1.5rem; margin-bottom: 6px; }
-        .chat-row { display: flex; gap: 4px; }
-        #chat-input { flex: 1; border: 1px solid #ddd; border-radius: 15px; padding: 4px 12px; font-size: 0.9rem; }
+        /* 下部UI（チャット・スタンプ） */
+        .bottom-ui { background: white; border-top: 2px solid #ddd; padding: 10px; }
+        #chat-box { height: 70px; overflow-y: auto; text-align: left; font-size: 0.85rem; padding: 5px; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; border: 1px solid #eee; }
+        .stamp-row { display: flex; justify-content: space-around; font-size: 1.8rem; margin-bottom: 10px; }
+        .chat-row { display: flex; gap: 8px; }
+        #chat-input { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 8px 15px; font-size: 1rem; }
 
-        .btn { padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        .btn { padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
         .btn-primary { background: var(--main); color: white; }
-        #stamp-popup { position: fixed; top: 25%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 12px 24px; border-radius: 40px; border: 3px solid var(--main); z-index: 9999; font-weight: bold; transition: 0.2s; pointer-events: none; }
+        #stamp-popup { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 30px; border-radius: 50px; border: 4px solid var(--main); z-index: 9999; font-weight: bold; transition: 0.2s; pointer-events: none; font-size: 1.3rem; }
         #stamp-popup.show { transform: translate(-50%, -50%) scale(1); }
     </style>
 </head>
@@ -52,59 +53,63 @@
     <div id="stamp-popup"></div>
 
     <div id="screen-entry" class="screen active">
-        <div class="panel" style="margin-top: 30px; text-align: center;">
-            <h1 style="color:var(--main); margin-bottom: 20px;">コトバ・サバイバル</h1>
-            <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー" style="width:80%; padding:12px; font-size:1.1rem; margin-bottom:10px;"><br>
-            <input type="text" id="input-room" placeholder="部屋ID" value="123" style="width:80%; padding:12px; font-size:1.1rem; margin-bottom:20px;"><br>
-            <button id="btn-create" class="btn btn-primary" style="width:45%">部屋を作る</button>
-            <button id="btn-join" class="btn btn-primary" style="width:45%; background:var(--sub)">参加する</button>
+        <div class="panel" style="margin-top: 40px;">
+            <h1>コトバ・サバイバル</h1>
+            <input type="text" id="input-name" class="input-big" placeholder="なまえを入力">
+            <input type="text" id="input-room" class="input-big" placeholder="部屋ID(数字)" value="123">
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button id="btn-create" class="btn btn-primary" style="flex:1">部屋を作る</button>
+                <button id="btn-join" class="btn btn-primary" style="flex:1; background:var(--sub)">参加する</button>
+            </div>
         </div>
     </div>
 
     <div id="screen-lobby" class="screen">
-        <div class="panel" style="text-align: center;">
+        <div class="panel">
             <h2>LOBBY</h2>
             <div id="lobby-members"></div>
-            <div class="host-only" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                ジャンル: <select id="select-g" style="padding:8px; width:100%; margin:8px 0;"></select><br>
-                ライフ: <input type="number" id="select-h" value="17" style="width:60px; padding:8px;"><br><br>
-                <button id="btn-start" class="btn btn-primary" style="width:100%; font-size:1.4rem; background:orange;">ゲーム開始！</button>
+            <div class="host-only" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                <label>ジャンル：</label>
+                <select id="select-g" style="width:100%; padding:10px; font-size:1.1rem; margin:10px 0;"></select><br>
+                <label>ライフ(ミス許容回数)：</label>
+                <input type="number" id="select-h" value="17" style="width:70px; padding:8px; font-size:1.1rem;"><br><br>
+                <button id="btn-start" class="btn btn-primary" style="width:100%; background:orange; font-size:1.4rem; height:60px;">ゲームを開始する！</button>
             </div>
-            <p id="guest-msg" style="color:#666;">ホストの開始を待っています...</p>
+            <p id="guest-msg" style="text-align:center; color:#666; font-size:1.2rem; margin-top:20px;">ホストの開始待ち...</p>
         </div>
     </div>
 
     <div id="screen-game" class="screen">
-        <div class="panel" style="padding:8px; text-align: center;">
-            <div id="turn-msg" class="turn-indicator">待機中</div>
-            <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin:8px 0;"></div>
+        <div class="panel" style="padding:10px; text-align:center;">
+            <div id="turn-msg" class="turn-indicator">読み込み中...</div>
+            <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin:10px 0;"></div>
             <div id="progress-area"></div>
-            <div style="font-size:0.85rem; margin-top:4px;">❤️ ライフ: <span id="heart-count" style="color:var(--danger); font-weight:bold;"></span></div>
+            <div style="font-size:1rem; margin-top:5px;">❤️ ライフ: <span id="heart-count" style="font-weight:bold; color:var(--danger)"></span></div>
         </div>
         <div id="keyboard" class="kb-container"></div>
     </div>
 
     <div id="screen-result" class="screen">
-        <div class="panel" style="text-align: center;">
-            <h1 id="res-status" style="font-size:2.2rem;">RESULT</h1>
-            <h2 id="res-word" style="color:var(--main); background:#f0f0f0; padding:10px; border-radius:8px;"></h2>
-            <div id="res-ranking" style="text-align:left; margin:15px 0;"></div>
-            <button onclick="location.reload()" class="btn btn-primary" style="width:100%; font-size:1.2rem;">タイトルへ</button>
+        <div class="panel" style="text-align:center;">
+            <h1 id="res-status" style="font-size:2.5rem;">RESULT</h1>
+            <h2 id="res-word" style="color:var(--main); background:#eee; padding:15px; border-radius:10px;"></h2>
+            <div id="res-ranking" style="text-align:left; margin:20px 0; font-size:1.2rem;"></div>
+            <button onclick="location.reload()" class="btn btn-primary" style="width:100%; height:60px;">トップに戻る</button>
         </div>
     </div>
 
     <div id="common-ui" class="bottom-ui" style="display:none;">
         <div id="chat-box"></div>
         <div class="stamp-row">
-            <span onclick="sendStamp('👏')" style="cursor:pointer">👏</span>
-            <span onclick="sendStamp('👍')" style="cursor:pointer">👍</span>
-            <span onclick="sendStamp('😮')" style="cursor:pointer">😮</span>
-            <span onclick="sendStamp('😭')" style="cursor:pointer">😭</span>
-            <span onclick="sendStamp('💢')" style="cursor:pointer">💢</span>
+            <span class="st" data-val="👏">👏</span>
+            <span class="st" data-val="👍">👍</span>
+            <span class="st" data-val="😮">😮</span>
+            <span class="st" data-val="😭">😭</span>
+            <span class="st" data-val="💢">💢</span>
         </div>
         <div class="chat-row">
             <input type="text" id="chat-input" placeholder="メッセージ...">
-            <button onclick="sendChat()" class="btn btn-primary" style="padding:0 12px;">送信</button>
+            <button id="btn-send-chat" class="btn btn-primary" style="padding:0 20px;">送信</button>
         </div>
     </div>
 
@@ -139,21 +144,32 @@
         let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
         let lastTurnId = "", lastStatus = "entry", lastStampTime = 0;
 
-        const entry = (host) => {
-            isHost = host; myName = document.getElementById('input-name').value || "ななし";
+        // ボタンのクリックイベントをここで確実に設定
+        document.getElementById('btn-create').addEventListener('click', () => entry(true));
+        document.getElementById('btn-join').addEventListener('click', () => entry(false));
+        document.getElementById('btn-send-chat').addEventListener('click', sendChat);
+        document.querySelectorAll('.st').forEach(s => s.addEventListener('click', (e) => sendStamp(e.target.dataset.val)));
+
+        function entry(host) {
+            isHost = host;
+            myName = document.getElementById('input-name').value || "プレイヤー" + Math.floor(Math.random()*100);
             roomKey = "room_" + (document.getElementById('input-room').value || "123");
             myId = Math.random().toString(36).slice(2, 7);
+            
             showScreen('screen-lobby');
             document.getElementById('common-ui').style.display = 'block';
-            if(host) document.querySelectorAll('.host-only').forEach(e => e.style.display = 'block');
             
             const roomRef = ref(db, `rooms/${roomKey}`);
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
+
             if(host) {
                 set(roomRef, { status: "lobby", config: { g: Object.keys(dictionary)[0], h: 17 }, lastStamp: {time:0} });
+                document.querySelectorAll('.host-only').forEach(e => e.style.display = 'block');
                 const sel = document.getElementById('select-g');
                 Object.keys(dictionary).forEach(g => { const o = document.createElement('option'); o.value=g; o.innerText=g; sel.appendChild(o); });
+                document.getElementById('btn-start').onclick = startGame;
             }
+
             set(pRef, { name: myName, score: 0, guessedStr: "", color: "#4a90e2" });
             onDisconnect(pRef).remove();
 
@@ -162,18 +178,10 @@
                 currentData = data;
                 const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
                 if(data.status === "lobby") document.getElementById('lobby-members').innerHTML = players.map(p => `<div class="member-card">${p.name}</div>`).join("");
-                
                 if(data.status === "playing") {
-                    if(data.lastStamp?.time > lastStampTime) {
-                        lastStampTime = data.lastStamp.time;
-                        showStampPopup(data.lastStamp);
-                        playTone(600, 0.1);
-                    }
+                    if(data.lastStamp?.time > lastStampTime) { lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp); playTone(600, 0.1); }
                     const curP = players[data.turnIdx];
-                    if(curP?.id !== lastTurnId) {
-                        lastTurnId = curP?.id;
-                        if(lastTurnId === myId) playTone(880, 0.08, "triangle");
-                    }
+                    if(curP?.id !== lastTurnId) { lastTurnId = curP?.id; if(lastTurnId === myId) playTone(880, 0.08, "triangle"); }
                 }
                 if(data.status !== lastStatus) {
                     lastStatus = data.status;
@@ -192,17 +200,17 @@
                     box.scrollTop = box.scrollHeight;
                 }
             });
-        };
+        }
 
-        window.sendChat = () => {
+        function sendChat() {
             const i = document.getElementById('chat-input'); if(!i.value) return;
             push(ref(db, `rooms/${roomKey}/chats`), { sender: myName, msg: i.value, time: Date.now() });
             i.value = "";
-        };
+        }
 
-        window.sendStamp = (emoji) => {
+        function sendStamp(emoji) {
             update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() } });
-        };
+        }
 
         function showStampPopup(s) {
             const p = document.getElementById('stamp-popup');
@@ -210,14 +218,12 @@
             setTimeout(() => p.classList.remove('show'), 1200);
         }
 
-        document.getElementById('btn-create').onclick = () => entry(true);
-        document.getElementById('btn-join').onclick = () => entry(false);
-        document.getElementById('btn-start').onclick = () => {
+        function startGame() {
             const g = document.getElementById('select-g').value;
             const target = dictionary[g][Math.floor(Math.random() * dictionary[g].length)];
             const removed = kanaList.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
             update(ref(db, `rooms/${roomKey}`), { status: "playing", target, turnIdx: 0, wrongAll: [], config: { g, h: parseInt(document.getElementById('select-h').value), removed } });
-        };
+        }
 
         function initGame(data) {
             myGuessed = []; myHearts = data.config.h; showScreen('screen-game');
@@ -259,7 +265,33 @@
             Object.entries(data.players).forEach(([pid, p]) => {
                 if(pid === myId) return;
                 const row = document.createElement('div'); row.className = "prog-row";
-                row.innerHTML = `<span style="width:50px; text-align:right;">${p.name.slice(0,3)}:</span>`;
+                row.innerHTML = `<span style="width:50px; text-align:right; overflow:hidden;">${p.name.slice(0,3)}:</span>`;
                 data.target.split("").forEach(char => {
                     const dot = document.createElement('div');
-                    dot.className = "p-dot" + ((p
+                    dot.className = "p-dot" + ((p.guessedStr || "").includes(char) ? " filled" : "");
+                    row.appendChild(dot);
+                });
+                progArea.appendChild(row);
+            });
+            document.querySelectorAll('.key').forEach(k => k.classList.remove('my-correct', 'wrong-all'));
+            if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
+            myGuessed.forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
+            const curP = Object.entries(data.players).map(([id, p]) => ({id, ...p}))[data.turnIdx];
+            const msg = document.getElementById('turn-msg');
+            msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
+            msg.style.color = (curP?.id === myId) ? "var(--sub)" : "#888";
+            document.getElementById('heart-count').innerText = Math.max(0, myHearts);
+        }
+
+        function showResult(data, players) {
+            showScreen('screen-result');
+            document.getElementById('res-word').innerText = "正解: " + data.target;
+            const area = document.getElementById('res-ranking'); area.innerHTML = "";
+            const sorted = players.sort((a,b) => b.score - a.score);
+            document.getElementById('res-status').innerText = (sorted[0].id === myId) ? "👑 WINNER!" : "FINISH";
+            sorted.forEach((p, i) => area.innerHTML += `<div style="padding:15px; border-bottom:1px solid #eee;"><b>${i+1}位: ${p.name}</b> (${p.score}文字)</div>`);
+        }
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    </script>
+</body>
+</html>
