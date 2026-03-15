@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル Pro</title>
+    <title>コトバ・サバイバル Pro v2</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif; margin: 0; text-align: center; color: #333; }
         .panel { background: white; padding: 20px; border-radius: 20px; width: 94%; max-width: 500px; margin: 15px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.05); box-sizing: border-box; }
         
-        /* ロビーフロー */
         .screen { display: none; }
         .active { display: block; }
         input, select { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; width: 80%; margin: 5px 0; }
@@ -17,22 +16,23 @@
         .btn-primary { background: var(--main); color: white; }
         .btn-host { background: orange; color: white; width: 100%; margin-top: 15px; font-size: 1.1rem; }
 
-        /* 50音キーボード（5列グリッド） */
+        /* キーボード */
         .kb-container { background: #e2e8f0; padding: 8px; border-radius: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .key { aspect-ratio: 1.2; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; }
-        .key.my-used { background: #94a3b8 !important; color: transparent; pointer-events: none; opacity: 0.2; box-shadow: none; }
-        .key.wrong-all { background: var(--danger) !important; color: white; }
+        /* 状態別スタイル */
+        .key.my-correct { background: var(--sub) !important; color: white; box-shadow: 0 2px 0 #24b662; } /* 正解 */
+        .key.my-used { background: #94a3b8 !important; color: transparent; pointer-events: none; opacity: 0.2; box-shadow: none; } /* すでに打った（ハズレ含む） */
+        .key.wrong-all { background: var(--danger) !important; color: white; } /* 全員共通のハズレ */
         .key.removed { background: #cbd5e0 !important; color: transparent; pointer-events: none; opacity: 0.4; box-shadow: none; }
+
         .key-group-label { grid-column: span 5; font-size: 0.7rem; color: #718096; text-align: left; padding: 4px 0 0 4px; }
 
-        /* ゲーム画面要素 */
         #word-display { display: flex; justify-content: center; gap: 4px; margin: 15px 0; flex-wrap: wrap; }
         .slot { width: 30px; height: 40px; border-bottom: 3px solid #cbd5e0; font-size: 1.4rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
         #turn-msg { padding: 10px; border-radius: 10px; margin-bottom: 10px; font-weight: bold; border: 2px solid transparent; }
         .my-turn-anim { background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* リザルト */
         .rank-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
         .host-only { display: none; }
     </style>
@@ -50,7 +50,7 @@
     </div>
 
     <div id="screen-lobby" class="screen panel">
-        <h2>待機中...</h2>
+        <h2>待機ロビー</h2>
         <div style="text-align:left; background:#f9f9f9; padding:15px; border-radius:12px;">
             <p><b>参加メンバー:</b> <span id="lobby-members">---</span></p>
             <hr>
@@ -84,7 +84,11 @@
         <h1 id="res-status">RESULT</h1>
         <h2 id="res-word" style="color:var(--main)">正解: ---</h2>
         <div id="res-ranking"></div>
-        <button onclick="location.reload()" class="btn btn-primary" style="margin-top:20px; width:100%;">ロビーに戻る</button>
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+            <button id="btn-replay" class="btn btn-host host-only" style="margin:0;">もう一度遊ぶ（新しい単語へ）</button>
+            <button onclick="location.reload()" class="btn btn-primary">ロビーに戻る / 終了</button>
+            <p id="replay-wait-msg" class="host-only" style="display:none; font-size:0.8rem; color:#666;">ホストが再戦ボタンを押すのを待っています...</p>
+        </div>
     </div>
 
     <script type="module">
@@ -114,21 +118,19 @@
         
         const kanaGroups = [
             { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" },
-            { label: "さ行", chars: "さしすせそ" }, { label: "た行", chars: "たちつてと" },
+            { label: "さ行", chars: "さしすせそ" }, { label: "たち行", chars: "たちつてと" },
             { label: "な行", chars: "なにぬねの" }, { label: "は行", chars: "はひふへほ" },
             { label: "ま行", chars: "まみむめも" }, { label: "やわ行", chars: "やゆよわをんー" },
-            { label: "ら行", chars: "らりるれろ" }, { label: "濁点・他", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉ" }
+            { label: "ら行", chars: "らりるれろ" }, { label: "濁点・小文字", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉ" }
         ];
 
         let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
 
-        // 画面切り替え
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
 
-        // ロビー入り口
         document.getElementById('btn-create').onclick = () => entry(true);
         document.getElementById('btn-join').onclick = () => entry(false);
 
@@ -141,9 +143,10 @@
             showScreen('screen-lobby');
             if(host) {
                 document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
-                syncConfig(); // ホストは初期値を送信
+                syncConfig();
             } else {
                 document.getElementById('guest-view').style.display = 'block';
+                document.getElementById('replay-wait-msg').style.display = 'block';
             }
 
             const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
@@ -161,12 +164,14 @@
                     document.getElementById('view-h').innerText = data.config.h;
                     document.getElementById('view-r').innerText = data.config.r;
                 }
+                
+                // 画面遷移トリガー
                 if(data.status === "playing") initGame(data);
                 if(data.status === "finished") showResult(data);
+                if(data.status === "lobby") showScreen('screen-lobby');
             });
         }
 
-        // ホストの設定をFirebaseに同期
         function syncConfig() {
             if(!isHost) return;
             const config = {
@@ -180,23 +185,42 @@
         document.getElementById('select-h').onchange = syncConfig;
         document.getElementById('select-r').onchange = syncConfig;
 
-        // ゲーム開始
-        document.getElementById('btn-start').onclick = () => {
+        // スタート/リプレイ共通処理
+        function launchGame() {
             const conf = currentData.config;
             const target = dictionary[conf.g][Math.floor(Math.random() * dictionary[conf.g].length)];
             const allChars = kanaGroups.map(g => g.chars).join("").split("");
             let removable = allChars.filter(c => !target.includes(c));
             const removed = removable.sort(() => Math.random() - 0.5).slice(0, conf.r);
 
-            update(ref(db, `rooms/${roomKey}`), {
-                status: "playing", target, turnIdx: 0, wrongAll: [], 
-                config: { ...conf, removed }
+            // 全員のステータスをリセット
+            const updates = {};
+            Object.keys(currentData.players).forEach(pid => {
+                updates[`players/${pid}/score`] = 0;
+                updates[`players/${pid}/guessedStr`] = "";
             });
-        };
+            updates['status'] = "playing";
+            updates['target'] = target;
+            updates['turnIdx'] = 0;
+            updates['wrongAll'] = [];
+            updates['config/removed'] = removed;
+
+            update(ref(db, `rooms/${roomKey}`), updates);
+        }
+
+        document.getElementById('btn-start').onclick = launchGame;
+        document.getElementById('btn-replay').onclick = launchGame;
 
         function initGame(data) {
-            showScreen('screen-game');
-            myHearts = data.config.h;
+            // ローカル変数のリセット（再戦時用）
+            if (currentData.status === "playing" && document.getElementById('screen-game').classList.contains('active')) {
+                // すでにゲーム中なら何もしない（Firebaseの更新に反応しすぎないように）
+            } else {
+                myGuessed = [];
+                myHearts = data.config.h;
+                showScreen('screen-game');
+            }
+
             const kb = document.getElementById('keyboard');
             kb.innerHTML = "";
             kanaGroups.forEach(group => {
@@ -219,13 +243,14 @@
             if(pList[currentData.turnIdx].id !== myId) return;
 
             const btn = document.getElementById("k-"+char);
-            if(btn.classList.contains("my-used") || btn.classList.contains("wrong-all")) return;
-            btn.classList.add("my-used");
+            if(btn.classList.contains('my-used') || btn.classList.contains('wrong-all') || btn.classList.contains('my-correct')) return;
 
             if(currentData.target.includes(char)) {
                 myGuessed.push(char);
+                btn.classList.add('my-correct'); // 即座に反映
             } else {
                 myHearts--;
+                btn.classList.add('my-used');
                 const wa = currentData.wrongAll || [];
                 if(!wa.includes(char)) wa.push(char);
                 update(ref(db, `rooms/${roomKey}`), { wrongAll: wa });
@@ -252,12 +277,16 @@
                 display.appendChild(s);
             });
 
+            // キーボードの色の更新
+            data.target.split("").forEach(c => {
+                if(myGuessed.includes(c)) document.getElementById("k-"+c)?.classList.add("my-correct");
+            });
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add("wrong-all"));
 
             const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
-            const isMy = (pList[data.turnIdx].id === myId);
+            const isMy = (pList[data.turnIdx]?.id === myId);
             const msg = document.getElementById('turn-msg');
-            msg.innerText = isMy ? "★ あなたの番です ★" : `${pList[data.turnIdx].name}の番...`;
+            msg.innerText = isMy ? "★ あなたの番です ★" : `${pList[data.turnIdx]?.name}の番...`;
             msg.className = isMy ? "my-turn-anim" : "";
             document.getElementById('heart-bar').innerText = "❤️".repeat(Math.max(0, myHearts));
         }
@@ -268,11 +297,15 @@
             const area = document.getElementById('res-ranking');
             area.innerHTML = "";
             const sorted = Object.values(data.players).sort((a,b) => b.score - a.score);
-            const winner = data.target.split("").every(c => sorted[0].guessedStr.split(",").includes(c));
-            document.getElementById('res-status').innerText = (winner && sorted[0].name === myName) ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
+            
+            // 勝者判定: ターゲット文字をすべて含んでいる人がいればその人が勝ち
+            const someoneWon = sorted.some(p => data.target.split("").every(c => p.guessedStr.split(",").includes(c)));
+            const iWon = data.target.split("").every(c => myGuessed.includes(c));
+            
+            document.getElementById('res-status').innerText = iWon ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
 
             sorted.forEach((p, i) => {
-                const pG = p.guessedStr.split(",");
+                const pG = p.guessedStr ? p.guessedStr.split(",") : [];
                 const progress = data.target.split("").map(c => pG.includes(c)?c:"_").join("");
                 area.innerHTML += `
                     <div class="rank-row">
