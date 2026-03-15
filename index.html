@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v24</title>
+    <title>コトバ・サバイバル v25</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
         
-        .game-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 15px; padding: 10px; max-width: 1000px; margin: 0 auto; }
+        .game-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 15px; padding: 10px; max-width: 1100px; margin: 0 auto; }
         .side-panel { width: 220px; flex-shrink: 0; margin-top: 15px; position: sticky; top: 15px; }
         .main-column { flex: 1; max-width: 480px; min-width: 320px; }
 
@@ -29,27 +29,25 @@
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; box-shadow: none; }
         .key-group-label { grid-column: span 5; font-size: 0.75rem; color: #718096; text-align: left; padding: 6px 2px 2px; font-weight: bold; }
 
-        /* カラーピッカー */
         .color-picker { display: flex; justify-content: center; gap: 10px; margin: 10px 0; padding: 10px; background: #eee; border-radius: 12px; }
         .color-dot { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; position: relative; }
         .color-dot.selected { border-color: #333; transform: scale(1.1); }
         .color-dot.taken { opacity: 0.2; cursor: not-allowed; pointer-events: none; }
-        .color-dot.taken::after { content: "×"; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
 
-        /* チャット & スタンプ */
+        /* サイドパネル */
         #chat-area { display: flex; flex-direction: column; height: 350px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 8px; padding: 8px; margin-bottom: 8px; border: 1px solid #eee; }
-        #chat-input { padding: 10px; border-radius: 15px; border: 1px solid #ccc; font-size: 0.9rem; width: 100%; }
         
         .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .stamp-btn { font-size: 1.5rem; padding: 10px 0; border: none; background: #f0f3f5; border-radius: 12px; cursor: pointer; transition: 0.1s; box-shadow: 0 3px 0 #ddd; }
-        .stamp-btn:active { transform: translateY(2px); box-shadow: none; }
+        .stamp-btn { font-size: 1.5rem; padding: 10px 0; border: none; background: #f0f3f5; border-radius: 12px; cursor: pointer; box-shadow: 0 3px 0 #ddd; }
 
-        #turn-msg { padding: 12px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; border: 4px solid #ddd; background: white; font-size: 1.1rem; }
-        .slot { width: 28px; height: 38px; border-bottom: 3px solid #ccc; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 2px; }
-        #progress-area { margin-bottom: 15px; background: #f9f9f9; padding: 8px; border-radius: 10px; }
-        .prog-row { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; margin: 4px 0; }
-        .prog-name { font-weight: bold; white-space: nowrap; min-width: 60px; text-align: right; }
+        /* 進捗 & ハート */
+        #progress-area { margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 15px; }
+        .prog-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; margin: 6px 0; }
+        .prog-info { display: flex; flex-direction: column; min-width: 80px; text-align: right; }
+        .prog-name { font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .prog-hearts { color: var(--danger); font-size: 0.7rem; }
+        .p-dot-container { display: flex; gap: 3px; flex-wrap: wrap; }
         .p-dot { width: 10px; height: 10px; background: #ddd; border-radius: 50%; flex-shrink: 0; }
         
         #stamp-popup { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 30px; border-radius: 40px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; pointer-events: none; font-size: 1.5rem; }
@@ -98,29 +96,24 @@
                 <p>メンバー: <span id="lobby-members">---</span></p>
                 <div class="host-only" style="display:none; text-align:left; background:#f9f9f9; padding:10px; border-radius:10px;">
                     ジャンル: <select id="select-g"></select><br>
-                    ライフ: <input type="number" id="select-h" value="17" style="width:70px;">
+                    ライフ: <input type="number" id="select-h" value="17" style="width:70px;"><br>
+                    <label><input type="checkbox" id="check-cpu"> CPUを1体追加する</label>
                 </div>
                 <button id="btn-start" class="btn btn-host host-only" style="display:none;">開始！</button>
-                <p id="guest-msg" style="font-size:0.9rem; color:#666; margin-top:10px;">ホストの開始待ち...</p>
             </div>
 
             <div id="screen-game" class="screen panel">
                 <div id="turn-msg">準備中...</div>
-                <div id="heart-status" style="margin-bottom:10px;">
-                    <span id="heart-icons" style="color:var(--danger); font-size:1.2rem;">❤️</span>
-                    <span id="heart-count" style="font-weight:bold;"></span>
-                </div>
-                <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:10px;"></div>
+                <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:15px;"></div>
                 <div id="progress-area"></div>
                 <div id="keyboard" class="kb-container"></div>
             </div>
 
             <div id="screen-result" class="screen panel">
-                <h1 id="res-status" style="font-size:2.5rem;">RESULT</h1>
-                <h2 id="res-word" style="color:var(--main); background:#eee; padding:15px; border-radius:10px;"></h2>
-                <div id="res-ranking" style="text-align:left; margin:20px 0;"></div>
+                <h1 id="res-status">RESULT</h1>
+                <h2 id="res-word"></h2>
+                <div id="res-ranking"></div>
                 <button id="btn-replay" class="btn btn-host host-only" style="display:none;">もう一度遊ぶ</button>
-                <button onclick="location.reload()" class="btn btn-primary" style="width:100%; margin-top:15px;">終了</button>
             </div>
         </div>
 
@@ -149,7 +142,9 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let audioCtx;
+        let audioCtx, myId, myName, roomKey, isHost = false, currentData = null;
+        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastStampTime = 0;
+
         function playTone(freq, duration, type = "sine") {
             try {
                 if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -173,11 +168,7 @@
             { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
         ];
 
-        let myId, myName, roomKey, isHost = false, myHearts = 17, myGuessed = [], currentData = null;
-        let lastTurnId = "", lastStatus = "entry", lastWrongTime = 0, lastStampTime = 0;
-
         const entry = (host) => {
-            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             isHost = host;
             myName = document.getElementById('input-name').value || "プレイヤー";
             roomKey = "room_" + (document.getElementById('input-room').value || "123");
@@ -189,61 +180,52 @@
             if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
             
             const roomRef = ref(db, `rooms/${roomKey}`);
-            const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
-            
-            const joinTask = host ? set(roomRef, { 
-                status: "lobby", config: { g: Object.keys(dictionary)[0], h: 17 }, 
-                lastWrong: { char: "", time: 0 }, lastStamp: { emoji: "", sender: "", time: 0 }
-            }) : Promise.resolve();
-            
-            joinTask.then(() => {
-                set(pRef, { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2" });
-                onDisconnect(pRef).remove();
-                
-                onValue(roomRef, (snap) => {
-                    const data = snap.val(); if(!data) return;
-                    currentData = data;
-                    const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
-                    document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
-                    updateColorDots(players);
-                    
-                    // スタンプ & 通知
-                    if(data.lastStamp && data.lastStamp.time > lastStampTime) {
-                        lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp);
-                    }
+            if(host) set(roomRef, { status: "lobby", lastStamp: {time:0} });
+            set(ref(db, `rooms/${roomKey}/players/${myId}`), { name: myName, score: 0, guessedStr: "", host: host, color: "#4a90e2", hearts: 17, isCPU: false });
+            onDisconnect(ref(db, `rooms/${roomKey}/players/${myId}`)).remove();
 
-                    if(data.status === "playing") {
-                        const curP = players[data.turnIdx];
-                        if(curP?.id !== lastTurnId) {
-                            lastTurnId = curP?.id;
-                            if(lastTurnId === myId) playTone(440, 0.05, "triangle");
-                        }
-                        if(data.lastWrong && data.lastWrong.time > lastWrongTime) {
-                            lastWrongTime = data.lastWrong.time;
-                            showWrongToast(data.lastWrong.char);
-                            playTone(220, 0.3, "square");
-                        }
-                    }
+            onValue(roomRef, (snap) => {
+                const data = snap.val(); if(!data) return;
+                currentData = data;
+                const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
+                document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
+                updateColorDots(players);
 
-                    // 画面遷移
-                    if(data.status !== lastStatus) {
-                        lastStatus = data.status;
-                        if(data.status === "playing") { lastStampTime = 0; initGame(data); }
-                        else if(data.status === "finished") showResult(data, players);
-                        else if(data.status === "lobby") showScreen('screen-lobby');
-                    } else if(data.status === "playing") { renderUI(data); }
-                });
+                if(data.lastStamp && data.lastStamp.time > lastStampTime) {
+                    lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp);
+                }
 
-                onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
-                    const box = document.getElementById('chat-box'); box.innerHTML = "";
-                    const chats = snap.val();
-                    if(chats) {
-                        Object.values(chats).slice(-20).forEach(c => {
-                            const d = document.createElement('div'); d.innerHTML = `<b>${c.sender}:</b> ${c.msg}`; box.appendChild(d);
-                        });
-                        box.scrollTop = box.scrollHeight;
+                if(data.status === "playing") {
+                    const curP = players[data.turnIdx];
+                    if(curP?.id !== lastTurnId) {
+                        lastTurnId = curP?.id;
+                        if(lastTurnId === myId) playTone(440, 0.05, "triangle");
+                        // CPUのターン処理（ホストが代行）
+                        if(isHost && curP?.isCPU) setTimeout(() => cpuTurn(curP.id), 1500);
                     }
-                });
+                    if(data.lastWrong && data.lastWrong.time > lastWrongTime) {
+                        lastWrongTime = data.lastWrong.time;
+                        showWrongToast(data.lastWrong.char); playTone(220, 0.3, "square");
+                    }
+                }
+
+                if(data.status !== lastStatus) {
+                    lastStatus = data.status;
+                    if(data.status === "playing") initGame(data);
+                    else if(data.status === "finished") showResult(data, players);
+                    else if(data.status === "lobby") showScreen('screen-lobby');
+                } else if(data.status === "playing") { renderUI(data); }
+            });
+
+            onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
+                const box = document.getElementById('chat-box'); box.innerHTML = "";
+                const chats = snap.val();
+                if(chats) {
+                    Object.values(chats).slice(-20).forEach(c => {
+                        const d = document.createElement('div'); d.innerHTML = `<b>${c.sender}:</b> ${c.msg}`; box.appendChild(d);
+                    });
+                    box.scrollTop = box.scrollHeight;
+                }
             });
         };
 
@@ -257,13 +239,62 @@
             });
         }
 
-        document.getElementById('chat-input').addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') {
-                const i = document.getElementById('chat-input'); if(!i.value) return;
-                push(ref(db, `rooms/${roomKey}/chats`), { sender: myName, msg: i.value, time: Date.now() });
-                i.value = "";
+        // CPUロジック（ホストが実行）
+        function cpuTurn(cpuId) {
+            if(!currentData || currentData.status !== "playing") return;
+            const target = currentData.target;
+            const wa = currentData.wrongAll || [];
+            const allPossible = kanaGroups.map(g => g.chars).join("").split("");
+            const cpuData = currentData.players[cpuId];
+            const alreadyGuessed = (cpuData.guessedStr || "").split(",");
+
+            // まだ当てていない正解の文字
+            const remainingTarget = target.split("").filter(c => !alreadyGuessed.includes(c));
+            // まだ選んでいない全ての文字
+            const available = allPossible.filter(c => !wa.includes(c) && !alreadyGuessed.includes(c));
+
+            let choice;
+            // 70%の確率で正解から選ぶ、30%で適当に選ぶ
+            if(Math.random() < 0.7 && remainingTarget.length > 0) {
+                choice = remainingTarget[Math.floor(Math.random() * remainingTarget.length)];
+            } else {
+                choice = available[Math.floor(Math.random() * available.length)];
             }
-        });
+            executeGuess(cpuId, choice);
+        }
+
+        function executeGuess(pid, char) {
+            const data = currentData;
+            const p = data.players[pid];
+            const isCorrect = data.target.includes(char);
+            const updates = {};
+            
+            if(isCorrect) {
+                const newGuessed = p.guessedStr ? p.guessedStr + "," + char : char;
+                updates[`players/${pid}/guessedStr`] = newGuessed;
+                updates[`players/${pid}/score`] = newGuessed.split(",").length;
+            } else {
+                const newHearts = Math.max(0, p.hearts - 1);
+                updates[`players/${pid}/hearts`] = newHearts;
+                const newWA = data.wrongAll || [];
+                newWA.push(char);
+                updates[`wrongAll`] = newWA;
+                updates[`lastWrong`] = { char: char, time: Date.now() };
+            }
+
+            const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
+            updates[`turnIdx`] = (data.turnIdx + 1) % pList.length;
+            update(ref(db, `rooms/${roomKey}`), updates);
+
+            // 終了判定
+            const checkPlayers = Object.entries({...data.players, [pid]: {...p, guessedStr: isCorrect ? (p.guessedStr ? p.guessedStr + "," + char : char) : p.guessedStr, hearts: isCorrect ? p.hearts : p.hearts-1 }});
+            const gameCleared = data.target.split("").every(c => checkPlayers.some(([_, pl]) => (pl.guessedStr || "").includes(c)));
+            const allDead = checkPlayers.every(([_, pl]) => pl.hearts <= 0);
+            
+            if(gameCleared || allDead) {
+                setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 500);
+            }
+        }
 
         window.sendStamp = (emoji) => {
             update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() } });
@@ -272,16 +303,18 @@
         function showStampPopup(stamp) {
             const p = document.getElementById('stamp-popup');
             p.innerText = `${stamp.sender}: ${stamp.emoji}`; p.classList.add('show');
-            const tones = { '👏': [800, 1000], '👍': [400, 600, 800], '😮': [600, 400], '😭': [300, 200], '💢': [150, 150] };
-            (tones[stamp.emoji] || [440]).forEach((f, i) => setTimeout(() => playTone(f, 0.2), i * 100));
             setTimeout(() => p.classList.remove('show'), 1500);
         }
 
-        document.getElementById('btn-create').onclick = () => entry(true);
-        document.getElementById('btn-join').onclick = () => entry(false);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') {
+                const i = document.getElementById('chat-input'); if(!i.value) return;
+                push(ref(db, `rooms/${roomKey}/chats`), { sender: myName, msg: i.value, time: Date.now() });
+                i.value = "";
+            }
+        });
 
         function initGame(data) {
-            myGuessed = []; myHearts = data.config.h; lastWrongTime = 0;
             showScreen('screen-game');
             const kb = document.getElementById('keyboard'); kb.innerHTML = "";
             kanaGroups.forEach(group => {
@@ -289,67 +322,52 @@
                 kb.appendChild(label);
                 group.chars.split("").forEach(c => {
                     const k = document.createElement("div"); k.className = "key"; k.id = "k-" + c; k.innerText = c;
-                    if(data.config.removed?.includes(c)) k.classList.add("removed");
-                    k.onclick = () => handleGuess(c); kb.appendChild(k);
+                    k.onclick = () => {
+                        const pList = Object.entries(currentData.players).map(([id, p]) => ({id, ...p}));
+                        if(pList[currentData.turnIdx].id === myId) executeGuess(myId, c);
+                    };
+                    kb.appendChild(k);
                 });
             });
             renderUI(data);
         }
 
-        function handleGuess(char) {
-            const pList = Object.entries(currentData.players).map(([id, p]) => ({id, ...p}));
-            if(pList[currentData.turnIdx].id !== myId) return;
-            const btn = document.getElementById("k-"+char);
-            if(btn.classList.contains('wrong-all') || btn.classList.contains('my-correct')) return;
-            
-            if(currentData.target.includes(char)) {
-                myGuessed.push(char);
-                playTone(880, 0.1); setTimeout(() => playTone(1320, 0.15), 100);
-                update(ref(db, `rooms/${roomKey}/players/${myId}`), { score: myGuessed.length, guessedStr: myGuessed.join(",") });
-            } else {
-                myHearts--;
-                const wa = currentData.wrongAll || []; wa.push(char);
-                update(ref(db, `rooms/${roomKey}`), { wrongAll: wa, lastWrong: { char: char, time: Date.now() } });
-            }
-            
-            const next = (currentData.turnIdx + 1) % pList.length;
-            update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
-            
-            if(currentData.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
-                setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 500);
-            }
-        }
-
         function renderUI(data) {
             const display = document.getElementById('word-display'); display.innerHTML = "";
+            const allGuessed = Object.values(data.players).map(p => p.guessedStr || "").join(",");
             data.target.split("").forEach(c => {
                 const s = document.createElement("div"); s.className = "slot";
-                s.innerText = myGuessed.includes(c) ? c : ""; display.appendChild(s);
+                s.innerText = allGuessed.includes(c) ? c : ""; display.appendChild(s);
             });
 
             const progArea = document.getElementById('progress-area'); progArea.innerHTML = "";
             Object.entries(data.players).forEach(([pid, p]) => {
-                if(pid === myId) return;
                 const row = document.createElement('div'); row.className = "prog-row";
-                row.innerHTML = `<span class="prog-name" style="color:${p.color}">${p.name}:</span>`;
+                const heartIcons = "❤️".repeat(Math.max(0, p.hearts));
+                row.innerHTML = `
+                    <div class="prog-info">
+                        <span class="prog-name" style="color:${p.color}">${p.name}</span>
+                        <span class="prog-hearts">HP:${p.hearts}</span>
+                    </div>
+                    <div class="p-dot-container"></div>
+                `;
                 data.target.split("").forEach(char => {
                     const dot = document.createElement('div'); dot.className = "p-dot";
                     if((p.guessedStr || "").includes(char)) dot.style.background = p.color;
-                    row.appendChild(dot);
+                    row.querySelector('.p-dot-container').appendChild(dot);
                 });
                 progArea.appendChild(row);
             });
 
             document.querySelectorAll('.key').forEach(k => k.classList.remove('my-correct', 'wrong-all'));
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
-            myGuessed.forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
+            const myP = data.players[myId];
+            if(myP && myP.guessedStr) myP.guessedStr.split(",").forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
             
-            const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
-            const curP = pList[data.turnIdx];
+            const curP = Object.entries(data.players).map(([id, p]) => ({id, ...p}))[data.turnIdx];
             const msg = document.getElementById('turn-msg');
             msg.innerText = (curP?.id === myId) ? "★ あなたの番です ★" : `${curP?.name}の番...`;
             msg.style.borderColor = curP?.color || "#ddd";
-            document.getElementById('heart-count').innerText = " × " + Math.max(0, myHearts);
         }
 
         function showWrongToast(char) {
@@ -363,29 +381,35 @@
             document.getElementById('res-word').innerText = "正解: " + data.target;
             const area = document.getElementById('res-ranking'); area.innerHTML = "";
             const sorted = players.sort((a,b) => b.score - a.score);
-            const winner = sorted[0];
-            document.getElementById('res-status').innerText = (winner.id === myId) ? "YOU WIN!" : "GAME OVER";
+            document.getElementById('res-status').innerText = "FINISH!";
             sorted.forEach((p, i) => {
-                const gList = (p.guessedStr || "").split(",").filter(s => s !== "").join(", ");
-                area.innerHTML += `<div style="border-bottom:1px solid #eee; padding:10px 0;"><div style="font-weight:bold; color:${p.color}; font-size:1.2rem;">${i+1}位: ${p.name} <span style="font-size:1rem; color:#666;">(${p.score}文字)</span></div><div style="font-size:0.85rem; color:#888; margin-top:5px;">当てた文字: ${gList || "なし"}</div></div>`;
+                area.innerHTML += `<div style="border-bottom:1px solid #eee; padding:10px 0;"><div style="font-weight:bold; color:${p.color}">${i+1}位: ${p.name} (${p.score}文字)</div><div style="font-size:0.8rem; color:#888;">残ライフ: ${p.hearts}</div></div>`;
             });
         }
 
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+        document.getElementById('btn-create').onclick = () => entry(true);
+        document.getElementById('btn-join').onclick = () => entry(false);
 
         const gSel = document.getElementById('select-g');
         Object.keys(dictionary).forEach(g => { const o = document.createElement('option'); o.value=g; o.innerText=g; gSel.appendChild(o); });
 
         document.getElementById('btn-start').onclick = () => {
             const g = document.getElementById('select-g').value;
+            const h = parseInt(document.getElementById('select-h').value);
             const target = dictionary[g][Math.floor(Math.random()*dictionary[g].length)];
-            const allChars = kanaGroups.map(gr => gr.chars).join("").split("");
-            const removed = allChars.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
-            const updates = { status: "playing", target: target, turnIdx: 0, config: {g:g, h:parseInt(document.getElementById('select-h').value), removed:removed}, wrongAll: [] };
-            Object.keys(currentData.players).forEach(pid => { updates[`players/${pid}/score`] = 0; updates[`players/${pid}/guessedStr`] = ""; });
-            update(ref(db, `rooms/${roomKey}`), updates);
+            const playersUpdate = {};
+            Object.keys(currentData.players).forEach(pid => {
+                playersUpdate[`players/${pid}/score`] = 0;
+                playersUpdate[`players/${pid}/guessedStr`] = "";
+                playersUpdate[`players/${pid}/hearts`] = h;
+            });
+            if(document.getElementById('check-cpu').checked) {
+                playersUpdate[`players/cpu_bot`] = { name: "CPUロボ", score: 0, guessedStr: "", color: "#576574", hearts: h, isCPU: true };
+            }
+            update(ref(db, `rooms/${roomKey}`), { ...playersUpdate, status: "playing", target: target, turnIdx: 0, config: {g, h}, wrongAll: [] });
         };
-        document.getElementById('btn-replay').onclick = document.getElementById('btn-start').onclick;
     </script>
 </body>
 </html>
