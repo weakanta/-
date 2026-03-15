@@ -3,70 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル Extreme</title>
+    <title>コトバ・サバイバル Multi</title>
     <style>
-        :root { --p1: #4a90e2; --p2: #ff4757; --bg: #f0f2f5; }
-        body { background: var(--bg); font-family: 'Hiragino Sans', sans-serif; text-align: center; margin: 0; touch-action: manipulation; }
-        .panel { background: white; padding: 20px; border-radius: 20px; width: 92%; max-width: 480px; margin: 15px auto; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; }
+        body { background: #f4f7f9; font-family: 'Hiragino Sans', sans-serif; margin: 0; text-align: center; }
+        .panel { background: white; padding: 20px; border-radius: 15px; width: 92%; max-width: 500px; margin: 15px auto; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
         
-        /* ターン表示 */
-        #turn-bar { padding: 10px; border-radius: 12px; font-weight: bold; margin-bottom: 15px; transition: 0.3s; }
-        .my-turn { background: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
-        .opp-turn { background: #e2e3e5; color: #383d41; border: 2px solid #d6d8db; }
+        /* ロビー */
+        .member-list { text-align: left; background: #eee; padding: 10px; border-radius: 10px; margin: 10px 0; }
+        .config-area { text-align: left; border-top: 1px solid #ddd; padding-top: 10px; }
+        .config-area input { width: 60px; }
 
-        /* 単語スロット */
-        #word-display { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 20px 0; min-height: 60px; }
-        .slot { width: 38px; height: 48px; border-bottom: 3px solid #cbd5e0; font-size: 1.6rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        /* ゲーム画面 */
+        #turn-info { padding: 10px; font-weight: bold; border-radius: 10px; margin-bottom: 10px; }
+        .active-turn { background: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
+        
+        #word-display { display: flex; justify-content: center; gap: 5px; margin: 15px 0; flex-wrap: wrap; }
+        .slot { width: 35px; height: 45px; border-bottom: 3px solid #ccc; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        /* キーボード */
-        #keyboard { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
-        .key { aspect-ratio: 1; border: 1px solid #ddd; border-radius: 5px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; background: #fff; cursor: pointer; }
-        .key.my-guessed { background: #333 !important; color: #333 !important; opacity: 0.2; pointer-events: none; }
-        .key.correct-hit { background: #2ed573 !important; color: white !important; }
+        /* 50音キーボード */
+        #keyboard { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: #ddd; padding: 5px; border-radius: 10px; }
+        .key { aspect-ratio: 1.2; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; cursor: pointer; font-weight: bold; }
+        .key.my-used { opacity: 0.3; pointer-events: none; }
+        .key.wrong-all { background: var(--danger) !important; color: white; }
+        .key.removed { background: #999 !important; color: #999; pointer-events: none; opacity: 0.5; }
 
-        /* リザルト画面 */
-        #result-screen { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); color: white; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .result-box { background: white; color: #333; padding: 30px; border-radius: 20px; width: 80%; }
-        .res-btn { width: 100%; padding: 15px; margin-top: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-
-        #lobby { display: block; }
-        #game-screen { display: none; }
-        #hearts { font-size: 1.2rem; color: var(--p2); margin: 5px; }
-        .genre-tag { font-size: 0.8rem; background: #eee; padding: 2px 8px; border-radius: 10px; }
+        /* 結果画面 */
+        #result-overlay { display: none; position: fixed; inset:0; background: rgba(0,0,0,0.9); color: white; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+        button { padding: 12px 24px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        .host-only { display: none; }
     </style>
 </head>
 <body>
 
     <div id="lobby" class="panel">
-        <h2 style="color:var(--p1)">コトバ・サバイバル</h2>
-        <input type="text" id="nameInput" placeholder="なまえ" value="プレイヤー1" style="margin-bottom:10px; padding:10px; width:80%"><br>
-        <input type="text" id="roomInput" placeholder="部屋番号" value="1234" style="margin-bottom:10px; padding:10px; width:80%"><br>
+        <h2 id="lobby-title">ロビー</h2>
+        <input type="text" id="nameInput" placeholder="なまえ" value="プレイヤー"><br><br>
+        <input type="text" id="roomInput" placeholder="部屋ID" value="999"><br><br>
         <div style="display:flex; gap:10px; justify-content:center;">
-            <button id="createBtn" style="padding:15px 30px; background:var(--p1); color:white; border:none; border-radius:10px;">ルーム作成</button>
-            <button id="joinBtn" style="padding:15px 30px; background:#2ed573; color:white; border:none; border-radius:10px;">参加する</button>
+            <button id="createBtn" style="background:var(--main); color:white">部屋作成</button>
+            <button id="joinBtn" style="background:var(--sub); color:white">参加する</button>
+        </div>
+        
+        <div id="room-controls" style="display:none; margin-top:20px;">
+            <div class="member-list">参加者: <span id="player-names">---</span></div>
+            <div class="config-area">
+                <p>ライフ: <span id="val-h">17</span> | 除外: <span id="val-r">0</span></p>
+                <div class="host-only" id="host-tools">
+                    ライフ設定: <input type="number" id="set-h" value="17"><br>
+                    除外文字数: <input type="number" id="set-r" value="10"><br>
+                    <button id="startBtn" style="background:orange; color:white; width:100%; margin-top:10px;">ゲーム開始！</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="game-screen" class="panel">
-        <div id="turn-bar">対戦相手を待機中...</div>
-        <div id="hearts">❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️</div>
-        <div id="genre-display" class="genre-tag">ジャンル: ???</div>
+    <div id="game-screen" class="panel" style="display:none">
+        <div id="turn-info">待機中...</div>
+        <div id="heart-count">❤️❤️❤️</div>
         <div id="word-display"></div>
         <div id="keyboard"></div>
     </div>
 
-    <div id="result-screen">
-        <div class="result-box">
-            <h1 id="result-title">Victory!</h1>
-            <p id="result-word">正解: ---</p>
-            <button class="res-btn" style="background:var(--p1); color:white" onclick="location.reload()">もう一度あそぶ</button>
-            <button class="res-btn" style="background:#eee" onclick="location.reload()">ロビーへ戻る</button>
-        </div>
+    <div id="result-overlay">
+        <h1 id="res-status"></h1>
+        <p id="res-ans"></p>
+        <button onclick="location.reload()" style="background:white; color:black">タイトルへ</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, push, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
@@ -77,119 +84,141 @@
             messagingSenderId: "15014810791",
             appId: "1:15014810791:web:7dc84e7143d495cf97b782"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- 単語データ ---
-        const dictionary = {
-            "たべもの": ["おむらいす", "ぷりん", "ぎゅうにゅう", "そふとくりーむ", "おにぎり", "めろんぱん", "たこやき"],
-            "どうぶつ": ["らいおん", "ぞう", "きりん", "きょうりゅう", "ちんぱんじー", "ぺんぎん", "はむすたー"],
-            "のりもの": ["しんかんせん", "へりこぷたー", "しょうぼうしゃ", "ぱとかー", "じてんしゃ"],
-            "むし": ["かぶとむし", "くわがた", "あげはちょう", "てんとうむし", "かまきり", "せみ"]
+        const hiragana50 = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんーがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉ".split("");
+        const words = ["らいおん", "しんかんせん", "ちゅうしゃじょう", "けーきたべたい", "ぷろぐらみんぐ"];
+        
+        let myId, myName, gameId, isHost = false, myRoleIdx;
+        let myHearts = 17, myGuessed = [], currentTurnIdx = 0;
+        let pList = [];
+
+        // --- ロビー処理 ---
+        document.getElementById("createBtn").onclick = () => entry(true);
+        document.getElementById("joinBtn").onclick = () => entry(false);
+
+        function entry(host) {
+            isHost = host;
+            myName = document.getElementById("nameInput").value;
+            gameId = "multi_" + document.getElementById("roomInput").value;
+            myId = Math.random().toString(36).slice(2, 7);
+            
+            document.getElementById("room-controls").style.display = "block";
+            if(host) document.getElementById("host-tools").style.display = "block";
+
+            const pRef = ref(db, `rooms/${gameId}/players/${myId}`);
+            set(pRef, { name: myName, host: host });
+            onDisconnect(pRef).remove();
+
+            onValue(ref(db, `rooms/${gameId}`), (snap) => {
+                const data = snap.val(); if(!data) return;
+                pList = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
+                document.getElementById("player-names").innerText = pList.map(p => p.name).join(", ");
+                
+                if(data.config) {
+                    document.getElementById("val-h").innerText = data.config.h;
+                    document.getElementById("val-r").innerText = data.config.r;
+                    myHearts = data.config.h;
+                }
+                if(data.status === "playing") startGame(data);
+            });
+        }
+
+        document.getElementById("startBtn").onclick = () => {
+            const h = parseInt(document.getElementById("set-h").value);
+            const r = parseInt(document.getElementById("set-r").value);
+            const target = words[Math.floor(Math.random() * words.length)];
+            
+            // 除外文字作成
+            let removable = hiragana50.filter(c => !target.split("").includes(c));
+            removable.sort(() => Math.random() - 0.5);
+            const removed = removable.slice(0, r);
+
+            update(ref(db, `rooms/${gameId}`), {
+                status: "playing",
+                config: { h, r, removed },
+                target: target,
+                turnIdx: 0,
+                wrongAll: []
+            });
         };
 
-        const fullAlpha = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉ".split("");
-
-        let myRole, gameId, hearts = 17;
-        let gameState = {};
-
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function play(f, d) {
-            const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
-            o.connect(g); g.connect(audioCtx.destination);
-            o.frequency.value = f; g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + d);
-            o.start(); o.stop(audioCtx.currentTime + d);
-        }
-
-        document.getElementById("createBtn").onclick = () => start("p1");
-        document.getElementById("joinBtn").onclick = () => start("p2");
-
-        function start(role) {
-            audioCtx.resume();
-            myRole = role;
-            gameId = "room_" + document.getElementById("roomInput").value;
+        function startGame(data) {
             document.getElementById("lobby").style.display = "none";
             document.getElementById("game-screen").style.display = "block";
-
-            if(role === "p1") {
-                const genres = Object.keys(dictionary);
-                const genre = genres[Math.floor(Math.random() * genres.length)];
-                const target = dictionary[genre][Math.floor(Math.random() * dictionary[genre].length)];
-                set(ref(db, `games/${gameId}`), {
-                    target: target, genre: genre, turn: "p1", guessed: [], players: { p1: "P1" }
-                });
-            } else {
-                update(ref(db, `games/${gameId}/players`), { p2: "P2" });
-            }
-            init();
-        }
-
-        function init() {
+            myRoleIdx = pList.findIndex(p => p.id === myId);
+            
+            // キーボード生成
             const kb = document.getElementById("keyboard");
-            fullAlpha.forEach(char => {
-                const b = document.createElement("div");
-                b.className = "key"; b.id = "key-" + char; b.innerText = char;
-                b.onclick = () => guess(char);
-                kb.appendChild(b);
+            kb.innerHTML = "";
+            hiragana50.forEach(char => {
+                const d = document.createElement("div");
+                d.className = "key"; d.id = "k-" + char; d.innerText = char;
+                if(data.config.removed.includes(char)) d.classList.add("removed");
+                d.onclick = () => guess(char);
+                kb.appendChild(d);
             });
 
-            onValue(ref(db, `games/${gameId}`), (snap) => {
-                const data = snap.val(); if(!data) return;
-                gameState = data;
+            // リアルタイム同期
+            onValue(ref(db, `rooms/${gameId}`), (snap) => {
+                const d = snap.val();
+                currentTurnIdx = d.turnIdx;
+                const isMyTurn = (currentTurnIdx === myRoleIdx);
+                const bar = document.getElementById("turn-info");
+                bar.innerText = isMyTurn ? "★ あなたの番 ★" : `${pList[currentTurnIdx].name}の番...`;
+                bar.className = isMyTurn ? "active-turn" : "";
                 
-                document.getElementById("genre-display").innerText = "ジャンル: " + data.genre;
-                const display = document.getElementById("word-display");
-                display.innerHTML = "";
-                data.target.split("").forEach(char => {
-                    const s = document.createElement("div");
-                    s.className = "slot";
-                    if(data.guessed.includes(char)) {
-                        s.innerText = char;
-                        if (fullAlpha.includes(char)) document.getElementById("key-" + char).classList.add("correct-hit");
-                    }
-                    display.appendChild(s);
-                });
-
-                const bar = document.getElementById("turn-bar");
-                if(!data.players.p2) {
-                    bar.innerText = "相手を待っています...";
-                } else {
-                    const isMy = (data.turn === myRole);
-                    bar.innerText = isMy ? "★ あなたの番 ★" : "相手の番です...";
-                    bar.className = isMy ? "my-turn" : "opp-turn";
-                }
+                // 共通のハズレ文字を更新
+                (d.wrongAll || []).forEach(c => document.getElementById("k-"+c).classList.add("wrong-all"));
                 
-                checkEnd(data);
+                renderWord(d.target);
+                document.getElementById("heart-count").innerText = "❤️".repeat(myHearts);
+                
+                // 勝利判定 (自分だけが見えている文字で判定)
+                if(d.target.split("").every(c => myGuessed.includes(c))) end(true, d.target);
             });
         }
 
         function guess(char) {
-            if(gameState.turn !== myRole || !gameState.players.p2) return;
-            const btn = document.getElementById("key-" + char);
-            btn.classList.add("my-guessed");
+            if(currentTurnIdx !== myRoleIdx) return;
+            const btn = document.getElementById("k-" + char);
+            btn.classList.add("my-used");
 
-            let newGuessed = gameState.guessed || [];
-            if(gameState.target.includes(char)) {
-                play(800, 0.2);
-                if(!newGuessed.includes(char)) newGuessed.push(char);
-            } else {
-                play(200, 0.3);
-                hearts--;
-                document.getElementById("hearts").innerText = "❤️".repeat(hearts);
-            }
+            const target = gameState.target || ""; // syncの問題回避
+            const gameRef = ref(db, `rooms/${gameId}`);
 
-            const next = (myRole === "p1") ? "p2" : "p1";
-            update(ref(db, `games/${gameId}`), { guessed: newGuessed, turn: next });
+            onValue(gameRef, (snap) => {
+                const d = snap.val();
+                if(d.target.includes(char)) {
+                    myGuessed.push(char);
+                } else {
+                    myHearts--;
+                    const wa = d.wrongAll || [];
+                    if(!wa.includes(char)) wa.push(char);
+                    update(gameRef, { wrongAll: wa });
+                }
+                const next = (d.turnIdx + 1) % pList.length;
+                update(gameRef, { turnIdx: next });
+                if(myHearts <= 0) end(false, d.target);
+            }, {onlyOnce: true});
         }
 
-        function checkEnd(data) {
-            const win = data.target.split("").every(c => data.guessed.includes(c));
-            if(win || hearts <= 0) {
-                document.getElementById("result-screen").style.display = "flex";
-                document.getElementById("result-title").innerText = win ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
-                document.getElementById("result-word").innerText = "正解は: " + data.target;
-            }
+        function renderWord(target) {
+            const area = document.getElementById("word-display");
+            area.innerHTML = "";
+            target.split("").forEach(c => {
+                const s = document.createElement("div");
+                s.className = "slot";
+                if(myGuessed.includes(c)) s.innerText = c;
+                area.appendChild(s);
+            });
+        }
+
+        function end(win, target) {
+            document.getElementById("result-overlay").style.display = "flex";
+            document.getElementById("res-status").innerText = win ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
+            document.getElementById("res-ans").innerText = "正解: " + target;
         }
     </script>
 </body>
