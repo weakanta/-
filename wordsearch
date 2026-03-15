@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コトバ・パズル Online</title>
+    <style>
+        body { background: #eef2f3; text-align: center; font-family: 'Hiragino Sans', 'Meiryo', sans-serif; color: #333; margin: 0; }
+        #setup-screen, #game-screen { background: white; padding: 20px; border-radius: 20px; width: 90%; max-width: 450px; margin: 30px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; font-size: 1.5rem; margin-top: 0; }
+        
+        /* 設定画面のスタイル */
+        .setting-item { margin: 15px 0; text-align: left; }
+        label { display: block; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; }
+        input[type="number"], input[type="text"] { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        #startBtn { width: 100%; padding: 15px; background: #ff4757; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
+        
+        /* ゲーム画面のスタイル */
+        #game-screen { display: none; }
+        #hearts { font-size: 1.5rem; color: #ff4757; margin-bottom: 15px; }
+        #word-display { display: flex; justify-content: center; gap: 8px; margin: 25px 0; }
+        .letter-slot { width: 45px; height: 55px; border-bottom: 4px solid #34495e; font-size: 2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; background: #f9f9f9; }
+        
+        #keyboard { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+        .key { padding: 10px 0; background: #fff; border: 2px solid #dcdde1; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .key:active { transform: scale(0.9); }
+        .key.correct { background: #2ed573; color: white; border-color: #2ed573; pointer-events: none; }
+        .key.wrong { background: #7f8c8d; color: white; border-color: #7f8c8d; opacity: 0.3; pointer-events: none; }
+        .key.removed { display: none; } /* 設定で消された文字 */
+        
+        #status-msg { margin-top: 20px; font-weight: bold; color: #2c3e50; height: 1.2em; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <h2>コトバ・パズル 設定</h2>
+        <div class="setting-item">
+            <label>部屋番号</label>
+            <input type="text" id="roomInput" value="777">
+        </div>
+        <div class="setting-item">
+            <label>初期ハート（残機）</label>
+            <input type="number" id="heartSetting" value="5" min="1" max="10">
+        </div>
+        <div class="setting-item">
+            <label>取り除く文字数 (0〜40)</label>
+            <input type="number" id="removeSetting" value="15" min="0" max="40">
+        </div>
+        <button id="startBtn">対戦準備完了！</button>
+    </div>
+
+    <div id="game-screen">
+        <div id="hearts">❤️❤️❤️❤️❤️</div>
+        <div id="word-display"></div>
+        <div id="keyboard"></div>
+        <div id="status-msg">相手を待っています...</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // ※Firebaseの設定は前回と同じものを使用してください
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
+            authDomain: "airhockey-1e251.firebaseapp.com",
+            projectId: "airhockey-1e251",
+            databaseURL: "https://airhockey-1e251-default-rtdb.firebaseio.com",
+            storageBucket: "airhockey-1e251.firebasestorage.app",
+            messagingSenderId: "15014810791",
+            appId: "1:15014810791:web:7dc84e7143d495cf97b782"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let myRole = null, gameId = "", currentHearts = 5;
+        let targetWord = "らいおん"; // 本来は単語リストから選ぶ
+        let guessedLetters = [];
+        
+        const allHiragana = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん".split("");
+
+        document.getElementById("startBtn").onclick = () => {
+            gameId = "wordgame_" + document.getElementById("roomInput").value;
+            currentHearts = parseInt(document.getElementById("heartSetting").value);
+            const removeCount = parseInt(document.getElementById("removeSetting").value);
+            
+            document.getElementById("setup-screen").style.display = "none";
+            document.getElementById("game-screen").style.display = "block";
+            
+            setupGame(removeCount);
+        };
+
+        function setupGame(removeCount) {
+            // 1. 文字候補の作成（正解に含まれる文字は残す）
+            const wordLetters = targetWord.split("");
+            let candidates = [...allHiragana];
+            let removable = candidates.filter(char => !wordLetters.includes(char));
+            
+            // ランダムに文字を削る
+            removable.sort(() => Math.random() - 0.5);
+            const removed = removable.slice(0, removeCount);
+
+            // 2. キーボード生成
+            const keyboardEl = document.getElementById("keyboard");
+            allHiragana.forEach(char => {
+                const btn = document.createElement("button");
+                btn.className = "key";
+                btn.innerText = char;
+                if (removed.includes(char)) btn.classList.add("removed");
+                btn.onclick = () => makeGuess(char, btn);
+                keyboardEl.appendChild(btn);
+            });
+
+            // 3. 単語表示枠生成
+            const displayEl = document.getElementById("word-display");
+            for (let i = 0; i < targetWord.length; i++) {
+                const slot = document.createElement("div");
+                slot.className = "letter-slot";
+                slot.id = "slot-" + i;
+                displayEl.appendChild(slot);
+            }
+
+            updateHeartsDisplay();
+            connectFirebase();
+        }
+
+        function connectFirebase() {
+            // プレイヤー登録と同期
+            const gameRef = ref(db, `games/${gameId}`);
+            onValue(gameRef, (snap) => {
+                const data = snap.val();
+                if (!data) return;
+                
+                // 相手が当てた文字などを反映（対戦要素）
+                if (data.guessed) {
+                    guessedLetters = data.guessed;
+                    renderWord();
+                }
+            });
+        }
+
+        function makeGuess(char, btn) {
+            if (targetWord.includes(char)) {
+                btn.classList.add("correct");
+                if (!guessedLetters.includes(char)) {
+                    guessedLetters.push(char);
+                    update(ref(db, `games/${gameId}`), { guessed: guessedLetters });
+                }
+                checkWin();
+            } else {
+                btn.classList.add("wrong");
+                currentHearts--;
+                updateHeartsDisplay();
+                if (currentHearts <= 0) {
+                    alert("ゲームオーバー！ 正解は：" + targetWord);
+                    location.reload();
+                }
+            }
+        }
+
+        function renderWord() {
+            targetWord.split("").forEach((char, i) => {
+                if (guessedLetters.includes(char)) {
+                    document.getElementById("slot-" + i).innerText = char;
+                }
+            });
+        }
+
+        function updateHeartsDisplay() {
+            document.getElementById("hearts").innerText = "❤️".repeat(currentHearts);
+        }
+
+        function checkWin() {
+            const isComplete = targetWord.split("").every(char => guessedLetters.includes(char));
+            if (isComplete) {
+                document.getElementById("status-msg").innerText = "おめでとう！完成です！";
+                setTimeout(() => alert("あなたの勝ちです！"), 100);
+            }
+        }
+    </script>
+</body>
+</html>
