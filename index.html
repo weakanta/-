@@ -253,3 +253,86 @@
                 label.className = "key-group-label"; label.innerText = group.label;
                 kb.appendChild(label);
                 group.chars.split("").forEach(c => {
+                    const k = document.createElement("div");
+                    k.className = "key"; k.id = "k-" + c; k.innerText = c;
+                    if(data.config.removed.includes(c)) k.classList.add("removed");
+                    k.onclick = () => handleGuess(c);
+                    kb.appendChild(k);
+                });
+            });
+            renderUI(data);
+        }
+
+        function handleGuess(char) {
+            const pList = Object.entries(currentData.players).map(([id, p]) => ({id, ...p}));
+            if(pList[currentData.turnIdx].id !== myId) return;
+            const btn = document.getElementById("k-"+char);
+            if(btn.classList.contains('my-used') || btn.classList.contains('wrong-all') || btn.classList.contains('my-correct')) return;
+
+            if(currentData.target.includes(char)) {
+                myGuessed.push(char);
+                sounds.correct();
+            } else {
+                myHearts--;
+                const wa = currentData.wrongAll || [];
+                if(!wa.includes(char)) wa.push(char);
+                update(ref(db, `rooms/${roomKey}`), { wrongAll: wa });
+                // 音とトーストはonValueで全員に飛ぶ
+            }
+
+            update(ref(db, `rooms/${roomKey}/players/${myId}`), { 
+                score: myGuessed.length, guessedStr: myGuessed.join(",") 
+            });
+            const next = (currentData.turnIdx + 1) % pList.length;
+            update(ref(db, `rooms/${roomKey}`), { turnIdx: next });
+
+            if(currentData.target.split("").every(c => myGuessed.includes(c)) || myHearts <= 0) {
+                update(ref(db, `rooms/${roomKey}`), { status: "finished" });
+            }
+        }
+
+        function renderUI(data) {
+            const display = document.getElementById('word-display');
+            display.innerHTML = "";
+            data.target.split("").forEach(c => {
+                const s = document.createElement("div"); s.className = "slot";
+                if(myGuessed.includes(c)) s.innerText = c;
+                display.appendChild(s);
+            });
+            data.target.split("").forEach(c => {
+                if(myGuessed.includes(c)) document.getElementById("k-"+c)?.classList.add("my-correct");
+            });
+            if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add("wrong-all"));
+
+            const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
+            const isMy = (pList[data.turnIdx]?.id === myId);
+            const msg = document.getElementById('turn-msg');
+            msg.innerText = isMy ? "★ あなたの番です ★" : `${pList[data.turnIdx]?.name}の番...`;
+            msg.className = isMy ? "my-turn-anim" : "";
+            document.getElementById('heart-bar').innerText = "❤️".repeat(Math.max(0, myHearts));
+        }
+
+        function showResult(data, players) {
+            showScreen('screen-result');
+            document.getElementById('res-word').innerText = "正解: " + data.target;
+            const area = document.getElementById('res-ranking');
+            area.innerHTML = "";
+            const sorted = players.sort((a,b) => b.score - a.score);
+            const iWon = data.target.split("").every(c => myGuessed.includes(c));
+            if(iWon) sounds.win();
+            document.getElementById('res-status').innerText = iWon ? "🏆 YOU WIN! 🏆" : "💀 GAME OVER 💀";
+
+            sorted.forEach((p, i) => {
+                const pG = p.guessedStr ? p.guessedStr.split(",") : [];
+                const progress = data.target.split("").map(c => pG.includes(c)?c:"_").join("");
+                area.innerHTML += `<div class="rank-row"><span><b>${i+1}位: ${p.name}</b></span><span style="font-family:monospace; color:#666;">${progress}</span><span style="color:var(--main)">${p.score}字</span></div>`;
+            });
+        }
+
+        // Host settings sync
+        document.getElementById('select-g').onchange = syncConfig;
+        document.getElementById('select-h').onchange = syncConfig;
+        document.getElementById('select-r').onchange = syncConfig;
+    </script>
+</body>
+</html>
