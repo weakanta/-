@@ -3,56 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v37</title>
+    <title>コトバ・サバイバル v38</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
         
-        .game-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 15px; padding: 10px; max-width: 1100px; margin: 0 auto; }
-        .main-column { flex: 1; max-width: 500px; min-width: 320px; }
+        /* 全体レイアウト */
+        .game-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 15px; padding: 10px; max-width: 1200px; margin: 0 auto; }
+        .main-column { flex: 1; max-width: 550px; min-width: 350px; }
         .side-panel { width: 220px; flex-shrink: 0; margin-top: 15px; position: sticky; top: 15px; }
 
-        .panel { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); box-sizing: border-box; margin-bottom: 15px; position: relative; }
+        .panel { background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; margin-bottom: 20px; position: relative; }
         .screen { display: none; }
         .active { display: block; }
         
-        .btn { padding: 12px 20px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; width: 100%; box-sizing: border-box; }
-        .btn-primary { background: var(--main); color: white; }
-        .btn-host { background: orange; color: white; margin-top: 10px; }
-        .btn-cpu { background: #8e44ad; color: white; margin-top: 10px; font-size: 0.8rem; padding: 8px; }
+        /* 入力画面・ボタンの大型化 */
+        #screen-entry input { padding: 18px; font-size: 1.2rem; border-radius: 15px; border: 2px solid #ddd; margin-bottom: 15px; width: 100%; box-sizing: border-box; }
+        .btn { padding: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1.1rem; width: 100%; box-sizing: border-box; }
+        .btn-primary { background: var(--main); color: white; box-shadow: 0 4px 0 #357abd; }
+        .btn-host { background: orange; color: white; margin-top: 10px; box-shadow: 0 4px 0 #d35400; }
+        .btn-cpu { background: #8e44ad; color: white; margin-top: 10px; padding: 12px; }
 
-        /* プレイヤーリストのスタイル */
-        .player-card-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 15px 0; }
-        .player-card { padding: 5px 12px; border-radius: 15px; background: #eee; font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        /* 文字スロットの巨大化 */
+        .word-slot { width: 45px; height: 55px; border-bottom: 4px solid #4a90e2; margin: 5px; font-size: 2.2rem; font-weight: 900; display: flex; align-items: center; justify-content: center; color: #222; }
 
-        .vote-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-        .vote-btn { background: white; border: 2px solid #eee; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
-        .vote-btn.selected { border-color: var(--main); background: #eef2ff; }
+        /* キーボード */
+        .kb-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; background: #e2e8f0; padding: 10px; border-radius: 15px; }
+        .key { aspect-ratio: 1; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #cbd5e0; font-size: 1.1rem; }
+        .key.correct { background: var(--sub) !important; color: white; box-shadow: none; }
+        .key.wrong { background: var(--danger) !important; color: white; box-shadow: none; }
+        .kb-disabled { opacity: 0.5; pointer-events: none; filter: grayscale(0.5); }
 
-        .color-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; }
-        .color-btn.active { border-color: #333; transform: scale(1.1); }
-        .color-btn.taken { opacity: 0.2; cursor: not-allowed; border-color: transparent !important; }
+        /* 進捗・プレイヤーリスト */
+        .progress-item { background: #f8f9fa; padding: 8px 12px; border-radius: 12px; margin-bottom: 6px; text-align: left; font-size: 0.9rem; border-left: 5px solid transparent; }
+        .player-card { padding: 8px 15px; border-radius: 20px; background: #eee; font-size: 1rem; font-weight: bold; }
 
-        #heart-status { font-size: 1.8rem; margin-bottom: 10px; letter-spacing: 2px; }
-        .word-slot { width: 30px; height: 40px; border-bottom: 3px solid #ccc; margin: 4px; font-size: 1.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        #chat-box { height: 280px; overflow-y: auto; text-align: left; font-size: 0.9rem; background: #f8f9fa; border-radius: 10px; padding: 12px; border: 1px solid #eee; margin-bottom: 10px; }
+        .stamp-btn { font-size: 1.8rem; height: 70px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 15px; }
 
-        .kb-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: #e2e8f0; padding: 8px; border-radius: 12px; }
-        .key { aspect-ratio: 1; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; font-size: 0.9rem; }
-        .key.correct { background: var(--sub); color: white; box-shadow: none; }
-        .key.wrong { background: var(--danger); color: white; box-shadow: none; }
-
-        #chat-box { height: 250px; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 10px; padding: 10px; margin-bottom: 8px; border: 1px solid #eee; }
-        .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .stamp-btn { font-size: 1.5rem; height: 60px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 12px; }
-
-        .item-inventory { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-        .item-use-btn { background: #ffd32a; border: none; padding: 10px; border-radius: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #d4a017; font-size: 0.8rem; }
-        
-        #toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.85); color: white; padding: 15px 25px; border-radius: 15px; z-index: 9999; transition: 0.3s; pointer-events: none; font-weight: bold; }
-        #stamp-pop { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 10px 20px; border-radius: 30px; border: 3px solid var(--main); z-index: 999; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; }
+        #toast { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.9); color: white; padding: 20px 30px; border-radius: 20px; z-index: 9999; transition: 0.3s; font-weight: bold; font-size: 1.2rem; }
+        #stamp-pop { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 25px; border-radius: 40px; border: 4px solid var(--main); z-index: 999; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; font-size: 1.1rem; }
         #toast.show, #stamp-pop.show { transform: translate(-50%, -50%) scale(1); }
 
-        @media (max-width: 900px) { .game-wrapper { flex-direction: column; align-items: center; } .side-panel { width: 100%; max-width: 500px; position: static; } }
+        @media (max-width: 900px) { .game-wrapper { flex-direction: column; align-items: center; } .side-panel { width: 100%; max-width: 550px; } }
     </style>
 </head>
 <body>
@@ -64,71 +57,74 @@
         <div class="side-panel" id="side-left" style="display:none;">
             <div class="panel" style="padding:15px;">
                 <div id="chat-box"></div>
-                <input type="text" id="chat-input" placeholder="チャット...">
-                <button id="sound-btn" onclick="toggleSnd()" style="width:100%; padding:8px; border-radius:10px; border:none; background:#2ed573; color:white; font-weight:bold; cursor:pointer; margin-top:10px;">🔊 音: ON</button>
+                <input type="text" id="chat-input" placeholder="メッセージ..." style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                <button id="sound-btn" onclick="toggleSnd()" style="width:100%; padding:10px; border-radius:10px; border:none; background:#2ed573; color:white; font-weight:bold; cursor:pointer; margin-top:10px;">🔊 音: ON</button>
             </div>
         </div>
 
         <div class="main-column">
             <div id="screen-entry" class="screen active panel">
-                <h1 style="color:var(--main); margin:0 0 15px;">コトバ・サバイバル</h1>
-                <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー">
+                <h1 style="color:var(--main); margin-bottom:25px; font-size:2rem;">コトバ・サバイバル</h1>
+                <input type="text" id="input-name" placeholder="プレイヤー名" value="プレイヤー">
                 <input type="text" id="input-room" placeholder="部屋ID" value="123">
-                <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:15px; text-align:left; font-size:0.8rem;">
+                <div style="background:#f8f9fa; padding:15px; border-radius:15px; margin-bottom:20px; text-align:left;">
                     <b>👑 ホスト設定:</b><br>
-                    <label><input type="radio" name="g-mode" value="vote" checked> 投票モード</label><br>
-                    <label><input type="radio" name="g-mode" value="host"> ホスト選択モード</label>
+                    <label style="display:block; margin:10px 0;"><input type="radio" name="g-mode" value="vote" checked> みんなで投票モード</label>
+                    <label style="display:block;"><input type="radio" name="g-mode" value="host"> ホストが選ぶモード</label>
                 </div>
-                <div style="display:flex; gap:10px;">
-                    <button id="btn-create" class="btn btn-primary">作る</button>
-                    <button id="btn-join" class="btn btn-primary" style="background:var(--sub)">入る</button>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <button id="btn-create" class="btn btn-primary">新しく作る</button>
+                    <button id="btn-join" class="btn btn-primary" style="background:var(--sub); box-shadow: 0 4px 0 #26af5d;">部屋に入る</button>
                 </div>
             </div>
 
             <div id="screen-lobby" class="screen panel">
-                <h2 style="margin:0;">ロビー</h2>
-                <div id="lobby-player-list" class="player-card-list"></div>
-                <div id="color-palette" style="display:flex; justify-content:center; gap:8px; margin:15px 0;"></div>
-                <div id="vote-area">
-                    <div id="vote-msg" style="font-size:0.85rem; font-weight:bold; margin-bottom:5px;"></div>
-                    <div id="vote-buttons" class="vote-list"></div>
+                <h2>待機中...</h2>
+                <div id="lobby-player-list" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-bottom:20px;"></div>
+                <div id="color-palette" style="display:flex; justify-content:center; gap:10px; margin-bottom:20px;"></div>
+                <div id="vote-area" class="panel" style="background:#f1f2f6; box-shadow:none;">
+                    <div id="vote-msg" style="font-weight:bold; margin-bottom:10px;"></div>
+                    <div id="vote-buttons" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
                 </div>
-                <div class="host-only" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
-                    <button id="btn-add-cpu" class="btn btn-cpu">🤖 CPUを追加</button><br>
-                    風船: <input type="number" id="input-h" value="17" style="width:60px; margin-top:10px;"> 🎈
-                    <button id="btn-start" class="btn btn-host">開始！</button>
+                <div class="host-only" style="display:none; margin-top:20px; border-top:2px solid #eee; padding-top:20px;">
+                    <button id="btn-add-cpu" class="btn btn-cpu">🤖 CPUを追加</button>
+                    <div style="margin-top:15px;">初期風船: <input type="number" id="input-h" value="17" style="width:70px; padding:10px; font-size:1.1rem;"> 🎈</div>
+                    <button id="btn-start" class="btn btn-host" style="margin-top:15px;">ゲーム開始！！</button>
                 </div>
             </div>
 
             <div id="screen-game" class="screen panel">
-                <div id="display-genre" style="position:absolute; top:10px; left:15px; font-size:0.7rem; background:#333; color:white; padding:2px 8px; border-radius:10px;"></div>
-                <div id="turn-info" style="font-weight:bold; margin-bottom:10px;">---</div>
-                <div id="heart-status"></div>
-                <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:20px;"></div>
-                <div id="progress-list" style="margin-bottom:15px; text-align:left;"></div>
+                <div id="display-genre" style="position:absolute; top:15px; left:15px; font-size:0.8rem; background:#333; color:white; padding:4px 12px; border-radius:15px;"></div>
+                <div id="turn-info" style="font-size:1.3rem; font-weight:bold; margin-bottom:15px;">---</div>
+                <div id="heart-status" style="font-size:2rem; margin-bottom:15px;"></div>
+                <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:25px;"></div>
+                
+                <div id="progress-list" style="margin-bottom:20px;"></div>
+                
                 <div id="keyboard" class="kb-container"></div>
             </div>
 
             <div id="screen-result" class="screen panel">
-                <h1>RESULT</h1>
-                <h2 id="res-word" style="background:#f0f0f0; padding:10px; border-radius:10px;"></h2>
-                <div id="res-rank" style="text-align:left; margin:15px 0;"></div>
-                <button id="btn-replay" class="btn btn-host host-only" style="display:none; margin-bottom:10px;">もう一度遊ぶ</button>
+                <h1 style="font-size:2.5rem; color:var(--main);">RESULT</h1>
+                <h2 id="res-word" style="background:#f0f0f0; padding:15px; border-radius:15px; font-size:1.8rem;"></h2>
+                <div id="res-rank" style="margin:20px 0;"></div>
+                <button id="btn-replay" class="btn btn-host host-only" style="display:none; margin-bottom:10px;">ロビーに戻る</button>
                 <button onclick="location.reload()" class="btn btn-primary">タイトルへ</button>
             </div>
         </div>
 
         <div class="side-panel" id="side-right" style="display:none;">
-            <div class="panel" style="padding:10px; margin-bottom:10px;">
-                <div class="stamp-grid">
+            <div class="panel" style="padding:15px;">
+                <div class="stamp-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <button class="stamp-btn" onclick="sendStamp('👏')">👏</button>
                     <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
                     <button class="stamp-btn" onclick="sendStamp('😮')">😮</button>
                     <button class="stamp-btn" onclick="sendStamp('😭')">😭</button>
                 </div>
             </div>
-            <div id="game-items" class="panel" style="padding:10px; display:none;">
-                <div id="my-inventory" class="item-inventory"></div>
+            <div id="game-items" class="panel" style="padding:15px; display:none;">
+                <div style="font-weight:bold; margin-bottom:10px; font-size:0.8rem; color:#666;">持ちアイテム</div>
+                <div id="my-inventory" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
         </div>
     </div>
@@ -150,9 +146,7 @@
         let myId, myName, roomKey, isHost = false, currentData = null, lastState = "", cpuThinking = false;
         let audioCtx, soundOn = true, lastSndT = 0, lastMsgT = 0, lastStampT = 0;
         const colors = ['#4a90e2', '#2ed573', '#ff4757', '#ffa502', '#9b59b6', '#e84393'];
-        const itemInfo = {
-            HEAL: { name: "🎈回復" }, ATTACK: { name: "💣攻撃" }, REVEAL: { name: "🔍透視" }, CLEAN: { name: "🧹掃除" }
-        };
+        const itemInfo = { HEAL: "🎈回復", ATTACK: "💣攻撃", REVEAL: "🔍透視", CLEAN: "🧹掃除" };
         const kana = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんーがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ";
 
         function initSnd() {
@@ -227,8 +221,9 @@
 
                 const inv = document.getElementById('my-inventory'); inv.innerHTML = "";
                 (data.players[myId]?.items || []).forEach((it, idx) => {
-                    const b = document.createElement('button'); b.className = 'item-use-btn';
-                    b.innerText = itemInfo[it].name; b.onclick = () => useItem(it, idx); inv.appendChild(b);
+                    const b = document.createElement('button'); b.className = 'btn';
+                    b.style.background = "#ffd32a"; b.style.padding = "10px"; b.style.fontSize="0.8rem";
+                    b.innerText = itemInfo[it]; b.onclick = () => useItem(it, idx); inv.appendChild(b);
                 });
                 document.getElementById('game-items').style.display = data.status === "playing" ? "block" : "none";
 
@@ -242,7 +237,7 @@
                     else if(data.status === "finished") showResult(data, pKeys);
                     else if(data.status === "lobby") showScreen('screen-lobby');
                 } else if(data.status === "playing") {
-                    updateUI(data);
+                    updateUI(data, pKeys);
                     checkCPUTurn(data, pKeys);
                 }
             });
@@ -254,37 +249,22 @@
                 const p = data.players[k];
                 const card = document.createElement('div'); card.className = 'player-card';
                 card.innerHTML = `<span style="color:${p.color}">●</span> ${p.name}`;
-                if(isHost && p.isCPU) {
-                    card.style.cursor = "pointer"; card.title = "削除";
-                    card.onclick = () => remove(ref(db, `rooms/${roomKey}/players/${k}`));
-                }
+                if(isHost && p.isCPU) { card.onclick = () => remove(ref(db, `rooms/${roomKey}/players/${k}`)); card.style.cursor="pointer"; }
                 list.appendChild(card);
             });
         }
 
         function checkCPUTurn(data, pKeys) {
             if(!isHost || cpuThinking) return;
-            const curPId = pKeys[data.turnIdx];
-            const curP = data.players[curPId];
-            if(curP?.isCPU) {
+            const curId = pKeys[data.turnIdx];
+            if(data.players[curId]?.isCPU) {
                 cpuThinking = true;
                 setTimeout(() => {
-                    const possible = kana.split("").filter(c => !data.wrongAll?.includes(c) && !(curP.guessed||"").includes(c));
-                    const char = possible[Math.floor(Math.random()*possible.length)];
-                    handleGuess(curPId, char);
+                    const possible = kana.split("").filter(c => !data.wrongAll?.includes(c) && !(data.players[curId].guessed||"").includes(c));
+                    handleGuess(curId, possible[Math.floor(Math.random()*possible.length)]);
                     cpuThinking = false;
                 }, 1500);
             }
-        }
-
-        function addCPU() {
-            const id = "cpu_" + Math.random().toString(36).slice(2, 7);
-            const taken = Object.values(currentData.players).map(p => p.color);
-            const color = colors.find(c => !taken.includes(c)) || colors[Math.floor(Math.random()*colors.length)];
-            update(ref(db, `rooms/${roomKey}/players/${id}`), {
-                name: "🤖 CPU " + (Object.keys(currentData.players).filter(k=>k.startsWith('cpu')).length + 1),
-                color: color, hearts: 17, score: 0, guessed: "", items: [], isCPU: true
-            });
         }
 
         function renderColorPalette(data) {
@@ -293,9 +273,10 @@
             colors.forEach(c => {
                 const b = document.createElement('div');
                 const isMine = data.players[myId]?.color === c;
-                b.className = `color-btn ${isMine ? 'active' : ''} ${taken.includes(c) && !isMine ? 'taken' : ''}`;
-                b.style.background = c;
-                if(!taken.includes(c) || isMine) b.onclick = () => update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c });
+                b.style.width = "40px"; b.style.height = "40px"; b.style.borderRadius = "50%"; b.style.background = c; b.style.cursor = "pointer";
+                b.style.border = isMine ? "4px solid #333" : "4px solid transparent";
+                if(taken.includes(c) && !isMine) b.style.opacity = "0.2";
+                else b.onclick = () => update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c });
                 cp.appendChild(b);
             });
         }
@@ -303,18 +284,17 @@
         function renderVotes(data) {
             const container = document.getElementById('vote-buttons'); container.innerHTML = "";
             const genres = ["オールジャンル", ...Object.keys(dictionary)];
-            const isVoteMode = data.genreMode === "vote";
-            document.getElementById('vote-msg').innerText = isVoteMode ? "🎨 ジャンル投票" : "👑 ホスト選択";
+            document.getElementById('vote-msg').innerText = data.genreMode === "vote" ? "🎨 ジャンル投票" : "👑 ホストが選択中";
             genres.forEach(g => {
-                const btn = document.createElement('div'); btn.className = 'vote-btn';
+                const btn = document.createElement('button'); btn.className = 'btn';
+                btn.style.padding = "10px"; btn.style.fontSize = "0.8rem"; btn.style.background = "white"; btn.style.color = "#333";
                 const count = Object.values(data.votes || {}).filter(v => v === g).length;
-                btn.innerHTML = `${g} ${isVoteMode ? `<span>(${count})</span>` : ''}`;
-                if(isVoteMode) {
-                    if(data.votes?.[myId] === g) btn.classList.add('selected');
+                btn.innerText = `${g} ${data.genreMode === "vote" ? `(${count})` : ''}`;
+                if(data.genreMode === "vote") {
+                    if(data.votes?.[myId] === g) btn.style.borderColor = var(--main);
                     btn.onclick = () => update(ref(db, `rooms/${roomKey}/votes`), { [myId]: g });
-                } else {
-                    if(data.selectedGenre === g) btn.classList.add('selected');
-                    if(isHost) btn.onclick = () => update(ref(db, `rooms/${roomKey}`), { selectedGenre: g });
+                } else if(isHost) {
+                    btn.onclick = () => update(ref(db, `rooms/${roomKey}`), { selectedGenre: g });
                 }
                 container.appendChild(btn);
             });
@@ -326,31 +306,35 @@
             const kb = document.getElementById('keyboard'); kb.innerHTML = "";
             kana.split("").forEach(c => {
                 const k = document.createElement('div'); k.className = 'key'; k.id = "k-"+c; k.innerText = c;
-                k.onclick = () => { if(Object.keys(currentData.players).sort()[currentData.turnIdx] === myId) handleGuess(myId, c); };
+                k.onclick = () => handleGuess(myId, c);
                 kb.appendChild(k);
             });
         }
 
         function handleGuess(pid, char) {
+            const pKeys = Object.keys(currentData.players).sort();
+            if(pKeys[currentData.turnIdx] !== pid) return; // 自分の番じゃない
+
             initSnd(); const data = currentData; const p = data.players[pid]; const updates = {};
             if(Math.random() < 0.15 && !p.isCPU) {
                 const it = Object.keys(itemInfo)[Math.floor(Math.random() * 4)];
                 updates[`players/${pid}/items`] = [...(p.items || []), it];
-                updates[`lastMsg`] = { text: `${p.name}が [${itemInfo[it].name}] をゲット！`, time: Date.now() };
+                updates[`lastMsg`] = { text: `${p.name}が [${itemInfo[it]}] をゲット！`, time: Date.now() };
                 updates[`lastSnd`] = { type: 'item', time: Date.now() };
             }
             if(data.target.includes(char)) {
                 const g = (p.guessed ? p.guessed + "," : "") + char;
                 updates[`players/${pid}/guessed`] = g; updates[`players/${pid}/score`] = g.split(",").length;
-                if(!updates[`lastSnd`]) updates[`lastSnd`] = { type: 'ok', time: Date.now() };
+                updates[`lastSnd`] = updates[`lastSnd`] || { type: 'ok', time: Date.now() };
             } else {
                 updates[`players/${pid}/hearts`] = (p.hearts || 0) - 1;
                 const wa = data.wrongAll || []; wa.push(char); updates[`wrongAll`] = wa;
-                updates[`lastMsg`] = { text: `「${char}」ではありません！`, time: Date.now() };
-                if(!updates[`lastSnd`]) updates[`lastSnd`] = { type: 'ng', time: Date.now() };
+                updates[`lastMsg`] = { text: `「${char}」はありません！`, time: Date.now() };
+                updates[`lastSnd`] = updates[`lastSnd`] || { type: 'ng', time: Date.now() };
             }
-            updates[`turnIdx`] = (data.turnIdx + 1) % Object.keys(data.players).length;
+            updates[`turnIdx`] = (data.turnIdx + 1) % pKeys.length;
             update(ref(db, `rooms/${roomKey}`), updates);
+            
             const latest = {...data.players};
             if(updates[`players/${pid}/guessed`]) latest[pid].guessed = updates[`players/${pid}/guessed`];
             if(data.target.split("").every(c => Object.values(latest).some(pl => (pl.guessed || "").includes(c))) || (p.hearts - (updates[`players/${pid}/hearts`]!==undefined?1:0)) <= 0) {
@@ -360,7 +344,7 @@
 
         function useItem(type, idx) {
             initSnd(); const p = currentData.players[myId]; const items = [...p.items]; items.splice(idx, 1);
-            const up = { [`players/${myId}/items`]: items, lastSnd: {type:'item', time:Date.now()}, lastMsg: {text:`${p.name}が [${itemInfo[type].name}] を使用！`, time:Date.now()} };
+            const up = { [`players/${myId}/items`]: items, lastSnd: {type:'item', time:Date.now()}, lastMsg: {text:`${p.name}が [${itemInfo[type]}] を使用！`, time:Date.now()} };
             if(type === "HEAL") up[`players/${myId}/hearts`] = (p.hearts || 0) + 5;
             else if(type === "ATTACK") Object.keys(currentData.players).forEach(id => { if(id !== myId) up[`players/${id}/hearts`] = Math.max(0, (currentData.players[id].hearts || 0) - 3); });
             else if(type === "REVEAL") {
@@ -370,27 +354,48 @@
             update(ref(db, `rooms/${roomKey}`), up);
         }
 
-        function updateUI(data) {
-            const myP = data.players[myId]; document.getElementById('heart-status').innerText = "🎈".repeat(Math.max(0, myP.hearts || 0));
+        function updateUI(data, pKeys) {
+            const myP = data.players[myId];
+            document.getElementById('heart-status').innerText = "🎈".repeat(Math.max(0, myP.hearts || 0));
+            
+            // 単語表示（巨大化反映）
             const wDisp = document.getElementById('word-display'); wDisp.innerHTML = "";
             data.target.split("").forEach(c => {
-                const s = document.createElement('div'); s.className = 'word-slot'; s.innerText = (myP.guessed || "").includes(c) ? c : ""; wDisp.appendChild(s);
+                const s = document.createElement('div'); s.className = 'word-slot';
+                s.innerText = (myP.guessed || "").includes(c) ? c : ""; wDisp.appendChild(s);
             });
-            const pKeys = Object.keys(data.players).sort(); const curP = data.players[pKeys[data.turnIdx]];
-            document.getElementById('turn-info').innerText = (curP?.name === myName) ? "★ あなたの番 ★" : `${curP?.name}の番...`;
-            document.getElementById('turn-info').style.color = curP?.color;
+
+            const curId = pKeys[data.turnIdx];
+            const isMyTurn = (curId === myId);
+            document.getElementById('turn-info').innerText = isMyTurn ? "★ あなたの番です ★" : `${data.players[curId]?.name}の番...`;
+            document.getElementById('turn-info').style.color = data.players[curId]?.color;
+            
+            // キーボードの更新
+            const kb = document.getElementById('keyboard');
+            kb.className = isMyTurn ? 'kb-container' : 'kb-container kb-disabled';
             document.querySelectorAll('.key').forEach(k => {
-                k.className = 'key'; if(data.wrongAll?.includes(k.innerText)) k.classList.add('wrong'); if(myP.guessed?.includes(k.innerText)) k.classList.add('correct');
+                k.className = 'key';
+                if(data.wrongAll?.includes(k.innerText)) k.classList.add('wrong');
+                if(myP.guessed?.includes(k.innerText)) k.classList.add('correct');
             });
+
+            // 進捗状況リストの更新
             const prog = document.getElementById('progress-list'); prog.innerHTML = "";
-            pKeys.forEach(id => { const pl = data.players[id]; prog.innerHTML += `<div style="font-size:0.75rem;"><b style="color:${pl.color}">${pl.name}</b> 🎈${pl.hearts} [${data.target.split("").map(c => (pl.guessed||"").includes(c)?"●":"○").join("")}]</div>`; });
+            pKeys.forEach(id => {
+                const pl = data.players[id];
+                const item = document.createElement('div'); item.className = 'progress-item';
+                item.style.borderLeftColor = pl.color;
+                const visual = data.target.split("").map(c => (pl.guessed||"").includes(c) ? "●" : "○").join("");
+                item.innerHTML = `<b>${pl.name}</b> 🎈${pl.hearts} <span style="letter-spacing:2px; margin-left:10px;">${visual}</span>`;
+                prog.appendChild(item);
+            });
         }
 
         function showResult(data, pKeys) {
             showScreen('screen-result'); document.getElementById('res-word').innerText = "正解: " + data.target;
             const r = document.getElementById('res-rank'); r.innerHTML = "";
             pKeys.map(k => data.players[k]).sort((a,b)=>b.score-a.score).forEach((p,i) => {
-                r.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee; background:white; border-radius:10px; margin-bottom:5px;"><b style="color:${p.color}">${i+1}位: ${p.name}</b> (${p.score}点) 🎈:${p.hearts}<br><span style="font-size:0.7rem; color:#666;">文字: ${p.guessed ? p.guessed.split(",").join(" ") : "-"}</span></div>`;
+                r.innerHTML += `<div style="padding:15px; border-bottom:1px solid #eee; background:white; border-radius:15px; margin-bottom:8px; text-align:left;"><b style="color:${p.color}">${i+1}位: ${p.name}</b> (${p.score}点) 🎈:${p.hearts}<br><span style="font-size:0.8rem; color:#666;">当てた文字: ${p.guessed ? p.guessed.split(",").join(" ") : "なし"}</span></div>`;
             });
         }
 
@@ -401,7 +406,13 @@
 
         document.getElementById('btn-create').onclick = () => startEntry(true);
         document.getElementById('btn-join').onclick = () => startEntry(false);
-        document.getElementById('btn-add-cpu').onclick = () => addCPU();
+        document.getElementById('btn-add-cpu').onclick = () => {
+            const id = "cpu_" + Math.random().toString(36).slice(2, 7);
+            const taken = Object.values(currentData.players).map(p => p.color);
+            update(ref(db, `rooms/${roomKey}/players/${id}`), {
+                name: "🤖 CPU", color: colors.find(c => !taken.includes(c)) || colors[0], hearts: 17, score: 0, guessed: "", items: [], isCPU: true
+            });
+        };
         document.getElementById('btn-replay').onclick = () => update(ref(db, `rooms/${roomKey}`), { status: "lobby", votes: {} });
         document.getElementById('btn-start').onclick = () => {
             let g = currentData.selectedGenre || "オールジャンル";
