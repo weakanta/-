@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v27</title>
+    <title>コトバ・サバイバル v28</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -16,19 +16,23 @@
         .screen { display: none; }
         .active { display: block; }
         
-        .btn { padding: 12px 20px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; }
+        .btn { padding: 12px 20px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; width: 100%; box-sizing: border-box; }
         .btn-primary { background: var(--main); color: white; }
-        .btn-host { background: orange; color: white; width: 100%; margin-top: 10px; font-size: 1.1rem; }
+        .btn-host { background: orange; color: white; margin-top: 10px; font-size: 1.1rem; }
+        
+        input[type="text"], input[type="number"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+
+        /* 作成前設定UI */
+        .entry-settings { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; font-size: 0.9rem; border: 1px solid #eee; }
         
         /* 投票・選択設定 */
-        .setting-row { background: #f8f9fa; padding: 10px; border-radius: 12px; margin-bottom: 10px; text-align: left; font-size: 0.9rem; }
         .vote-list { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
         .vote-btn { background: white; border: 1px solid #ddd; padding: 8px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: flex; justify-content: space-between; }
-        .vote-btn.voted { border-color: var(--main); background: #eef2ff; }
-        .host-select-mode { border: 2px solid orange !important; }
+        .vote-btn.voted { border-color: var(--main); background: #eef2ff; font-weight: bold; }
+        .host-select-mode { border: 2px solid orange !important; background: #fff8e1; }
 
         /* アイテムBOX */
-        .item-box { margin-top: 20px; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .item-box { margin-top: 20px; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: none; /* 初期非表示 */ }
         .item-btn { width: 100%; background: #ffd32a; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 0 #d4a017; font-size: 0.9rem; }
         .item-btn:active { transform: translateY(2px); box-shadow: none; }
         .item-count { background: #333; color: white; padding: 2px 8px; border-radius: 10px; margin-left: 5px; }
@@ -44,6 +48,12 @@
         .key.wrong-all { background: var(--danger) !important; color: white; box-shadow: none; }
         .key.removed { background: #cbd5e0 !important; opacity: 0.3; pointer-events: none; }
         
+        /* チャット & スタンプ */
+        #chat-area { display: flex; flex-direction: column; height: 350px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        #chat-box { flex: 1; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+        .stamp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: white; padding: 12px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .stamp-btn { font-size: 1.5rem; padding: 10px 0; border: none; background: #f0f3f5; border-radius: 12px; cursor: pointer; box-shadow: 0 3px 0 #ddd; }
+
         #stamp-popup { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 15px 30px; border-radius: 40px; border: 3px solid var(--main); z-index: 10000; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); font-weight: bold; font-size: 1.5rem; }
         #stamp-popup.show { transform: translate(-50%, -50%) scale(1); }
 
@@ -56,7 +66,7 @@
 <body>
 
     <div id="stamp-popup"></div>
-    <div id="wrong-toast" style="position:fixed; top:40%; left:50%; transform:translate(-50%,-50%) scale(0); background:rgba(0,0,0,0.85); color:white; padding:20px; border-radius:15px; z-index:999; transition:0.3s; pointer-events:none; font-size:1.2rem;"></div>
+    <div id="wrong-toast" style="position:fixed; top:40%; left:50%; transform:translate(-50%,-50%) scale(0); background:rgba(0,0,0,0.85); color:white; padding:20px 30px; border-radius:15px; z-index:999; transition:0.3s; pointer-events:none; font-size:1.2rem; font-weight:bold;"></div>
 
     <div class="game-wrapper">
         <div class="side-panel" id="side-left" style="display:none;">
@@ -68,36 +78,43 @@
 
         <div class="main-column">
             <div id="screen-entry" class="screen active panel">
-                <h1>コトバ・サバイバル</h1>
+                <h1 style="color:var(--main); margin-top:0;">コトバ・サバイバル</h1>
                 <input type="text" id="input-name" placeholder="なまえ" value="プレイヤー">
                 <input type="text" id="input-room" placeholder="部屋ID" value="123">
-                <div style="margin-top:20px; display:flex; gap:10px;">
+                
+                <div class="entry-settings">
+                    <b style="color:#555;">👑 ホスト用設定（作る人）</b><br>
+                    <div style="margin-top:8px;">
+                        ジャンル決定方式：<br>
+                        <label><input type="radio" name="entry-mode" value="vote" checked> みんなで投票</label> &nbsp;
+                        <label><input type="radio" name="entry-mode" value="host"> ホストが選ぶ</label>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px;">
                     <button id="btn-create" class="btn btn-primary" style="flex:1">作る</button>
                     <button id="btn-join" class="btn btn-primary" style="flex:1; background:var(--sub)">参加</button>
                 </div>
             </div>
 
             <div id="screen-lobby" class="screen panel">
-                <h2>待機ロビー</h2>
-                <div class="setting-row host-only" style="display:none;">
-                    <b>決定方式:</b>
-                    <label><input type="radio" name="mode" value="vote" checked> 投票</label>
-                    <label><input type="radio" name="mode" value="host"> ホスト選択</label>
-                </div>
+                <h2 style="margin-top:0;">待機ロビー</h2>
                 <div class="vote-section">
-                    <div id="vote-title" style="font-weight:bold; font-size:0.9rem;">🎨 ジャンル投票</div>
+                    <div id="vote-title" style="font-weight:bold; font-size:0.9rem;">🎨 ジャンル設定</div>
                     <div class="vote-list" id="vote-list"></div>
                 </div>
-                <div class="host-only" style="display:none; margin-top:15px;">
-                    風船数: <input type="number" id="select-h" value="17" style="width:60px;">
-                    <button id="btn-add-cpu" class="btn btn-host" style="background:#636e72; font-size:0.9rem;">＋ CPU追加</button>
+                <div class="host-only" style="display:none; margin-top:20px; background:#f9f9f9; padding:15px; border-radius:12px;">
+                    <div style="margin-bottom:10px; font-weight:bold;">ホスト操作</div>
+                    風船数: <input type="number" id="select-h" value="17" style="width:70px; display:inline-block; margin-bottom:0;"> 🎈<br>
+                    <button id="btn-add-cpu" class="btn" style="background:#636e72; color:white; margin-top:10px; padding:8px;">＋ CPU追加</button>
                     <button id="btn-start" class="btn btn-host">ゲーム開始！</button>
                 </div>
+                <p id="guest-msg" style="font-size:0.8rem; color:#666; margin-top:15px; font-weight:bold;">ホストの開始待ち...</p>
             </div>
 
             <div id="screen-game" class="screen panel">
                 <div id="game-genre-label">---</div>
-                <div id="turn-msg">準備中...</div>
+                <div id="turn-msg" style="font-weight:bold; font-size:1.1rem; padding:5px;">準備中...</div>
                 <div id="heart-status"></div>
                 <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:15px;"></div>
                 <div id="progress-area"></div>
@@ -105,10 +122,11 @@
             </div>
 
             <div id="screen-result" class="screen panel">
-                <h1 id="res-status">RESULT</h1>
-                <h2 id="res-word"></h2>
-                <div id="res-ranking"></div>
+                <h1 id="res-status" style="font-size:2.2rem; color:var(--main);">RESULT</h1>
+                <h2 id="res-word" style="background:#eee; padding:15px; border-radius:10px;"></h2>
+                <div id="res-ranking" style="text-align:left; margin:20px 0;"></div>
                 <button id="btn-replay" class="btn btn-host host-only" style="display:none;">もう一度</button>
+                <button onclick="location.reload()" class="btn btn-primary" style="margin-top:10px;">タイトルへ</button>
             </div>
         </div>
 
@@ -121,12 +139,12 @@
                 <button class="stamp-btn" style="grid-column: span 2" onclick="sendStamp('💢')">💢</button>
             </div>
             
-            <div class="item-box">
+            <div class="item-box" id="item-box-container">
                 <div style="font-weight:bold; font-size:0.8rem; color:#666;">ITEM BOX</div>
                 <button id="item-use-btn" class="item-btn" onclick="useItem()" style="display:none;">
                     🎁 ミステリーBOX <span id="item-qty" class="item-count">0</span>
                 </button>
-                <div id="item-empty" style="font-size:0.7rem; color:#999; margin-top:10px;">正解を当てると<br>10%の確率で出現</div>
+                <div id="item-empty" style="font-size:0.7rem; color:#999; margin-top:10px; font-weight:bold;">回答時に10%の確率で<br>手に入ります！</div>
             </div>
         </div>
     </div>
@@ -145,7 +163,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let myId, myName, roomKey, isHost = false, currentData = null, lastStatus = "entry", lastStampTime = 0, lastWrongTime = 0;
+        let myId, myName, roomKey, isHost = false, currentData = null, lastStatus = "entry", lastStampTime = 0;
         let myItems = 0, myVote = "";
 
         const kanaGroups = [
@@ -157,13 +175,20 @@
             myName = document.getElementById('input-name').value || "プレイヤー";
             roomKey = "room_" + (document.getElementById('input-room').value || "123");
             myId = Math.random().toString(36).slice(2, 7);
+            
             showScreen('screen-lobby');
             document.getElementById('side-left').style.display = 'block';
             document.getElementById('side-right').style.display = 'block';
             if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
+            else document.getElementById('guest-msg').style.display = 'block';
             
             const roomRef = ref(db, `rooms/${roomKey}`);
-            if(host) set(roomRef, { status: "lobby", genreMode: "vote", votes: {}, lastStamp: {time:0} });
+            if(host) {
+                // 作成前に選んだラジオボタンの値を反映
+                const mode = document.querySelector('input[name="entry-mode"]:checked').value;
+                set(roomRef, { status: "lobby", genreMode: mode, votes: {}, selectedByHost: "オールジャンル", lastStamp: {time:0} });
+            }
+            
             set(ref(db, `rooms/${roomKey}/players/${myId}`), { name: myName, score: 0, guessedStr: "", hearts: 17, color: "#4a90e2", isCPU: false, items: 0 });
             onDisconnect(ref(db, `rooms/${roomKey}/players/${myId}`)).remove();
             
@@ -171,8 +196,11 @@
                 const data = snap.val(); if(!data) return;
                 currentData = data;
                 const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
-                document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
+                
                 renderVotes(data);
+                
+                // アイテムBOXの表示切替（ゲーム中のみ表示）
+                document.getElementById('item-box-container').style.display = (data.status === "playing") ? 'block' : 'none';
                 
                 myItems = data.players[myId]?.items || 0;
                 document.getElementById('item-qty').innerText = myItems;
@@ -180,9 +208,13 @@
                 document.getElementById('item-empty').style.display = myItems > 0 ? 'none' : 'block';
 
                 if(data.lastStamp?.time > lastStampTime) { lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp); }
-                if(data.status === "playing") {
-                    if(isHost && players[data.turnIdx]?.isCPU) handleCPUTurn(players[data.turnIdx], data);
+                
+                // CPUアクション
+                if(data.status === "playing" && isHost) {
+                    const curP = players[data.turnIdx];
+                    if(curP?.isCPU) handleCPUTurn(curP, data);
                 }
+
                 if(data.status !== lastStatus) {
                     lastStatus = data.status;
                     if(data.status === "playing") initGame(data);
@@ -192,13 +224,11 @@
             });
         };
 
-        // ジャンル表示ロジック
         function renderVotes(data) {
             const list = document.getElementById('vote-list'); list.innerHTML = "";
             const isHostMode = data.genreMode === "host";
             document.getElementById('vote-title').innerText = isHostMode ? "👑 ホストがジャンルを選択中" : "🎨 ジャンル投票";
             
-            // 重複削除したジャンルリスト
             const genres = Array.from(new Set([...Object.keys(dictionary), "オールジャンル"]));
             
             genres.forEach(g => {
@@ -206,6 +236,7 @@
                 const b = document.createElement('div');
                 b.className = `vote-btn ${myVote === g ? 'voted' : ''} ${isHostMode && data.selectedByHost === g ? 'host-select-mode' : ''}`;
                 b.innerHTML = `<span>${g}</span> <b>${isHostMode ? '' : count}</b>`;
+                
                 b.onclick = () => {
                     if(isHostMode) {
                         if(isHost) update(ref(db, `rooms/${roomKey}`), { selectedByHost: g });
@@ -217,7 +248,45 @@
             });
         }
 
-        // アイテム使用
+        function handleCPUTurn(cpu, data) {
+            setTimeout(() => {
+                const allKana = kanaGroups.map(g => g.chars).join("").split("");
+                const guessed = Object.values(data.players).flatMap(p => (p.guessedStr || "").split(","));
+                const wrong = data.wrongAll || [];
+                const possible = allKana.filter(c => !guessed.includes(c) && !wrong.includes(c) && !data.config.removed?.includes(c));
+                if(possible.length > 0) processGuess(cpu.id, possible[Math.floor(Math.random() * possible.length)]);
+            }, 1500);
+        }
+
+        function processGuess(pid, char) {
+            const data = currentData; const p = data.players[pid]; const updates = {};
+            
+            // 【重要】回答時に正解・不正解問わず10%でアイテム抽選
+            if(Math.random() < 0.1) {
+                updates[`players/${pid}/items`] = (p.items || 0) + 1;
+                if(pid === myId) showWrongToast("🎁 アイテムGET！");
+            }
+
+            if(data.target.includes(char)) {
+                const g = (p.guessedStr ? p.guessedStr + "," : "") + char;
+                updates[`players/${pid}/guessedStr`] = g;
+                updates[`players/${pid}/score`] = g.split(",").length;
+            } else {
+                updates[`players/${pid}/hearts`] = (p.hearts || 0) - 1;
+                const wa = data.wrongAll || []; wa.push(char); updates[`wrongAll`] = wa;
+                updates[`lastWrong`] = { char, time: Date.now() };
+            }
+            updates[`turnIdx`] = (data.turnIdx + 1) % Object.keys(data.players).length;
+            update(ref(db, `rooms/${roomKey}`), updates);
+            
+            // クリア判定
+            const latest = {...data.players};
+            if(updates[`players/${pid}/guessedStr`]) latest[pid].guessedStr = updates[`players/${pid}/guessedStr`];
+            if(updates[`players/${pid}/hearts`] !== undefined) latest[pid].hearts = updates[`players/${pid}/hearts`];
+            const clear = data.target.split("").every(c => Object.values(latest).some(pl => (pl.guessedStr || "").includes(c)));
+            if(clear || latest[pid].hearts <= 0) setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 800);
+        }
+
         window.useItem = () => {
             if(myItems <= 0) return;
             const effects = ["HEAL", "ATTACK", "REVEAL", "CLEAN"];
@@ -253,32 +322,14 @@
             update(ref(db, `rooms/${roomKey}`), updates);
         };
 
-        function processGuess(pid, char) {
-            const data = currentData; const p = data.players[pid]; const updates = {};
-            if(data.target.includes(char)) {
-                const g = (p.guessedStr ? p.guessedStr + "," : "") + char;
-                updates[`players/${pid}/guessedStr`] = g;
-                updates[`players/${pid}/score`] = g.split(",").length;
-                // 10%の確率でアイテム
-                if(Math.random() < 0.1) updates[`players/${pid}/items`] = (p.items || 0) + 1;
-            } else {
-                updates[`players/${pid}/hearts`] = (p.hearts || 0) - 1;
-                const wa = data.wrongAll || []; wa.push(char); updates[`wrongAll`] = wa;
-                updates[`lastWrong`] = { char, time: Date.now() };
-            }
-            updates[`turnIdx`] = (data.turnIdx + 1) % Object.keys(data.players).length;
-            update(ref(db, `rooms/${roomKey}`), updates);
-            
-            // 判定
-            const latest = {...data.players};
-            if(updates[`players/${pid}/guessedStr`]) latest[pid].guessedStr = updates[`players/${pid}/guessedStr`];
-            if(updates[`players/${pid}/hearts`] !== undefined) latest[pid].hearts = updates[`players/${pid}/hearts`];
-            const clear = data.target.split("").every(c => Object.values(latest).some(pl => (pl.guessedStr || "").includes(c)));
-            if(clear || latest[pid].hearts <= 0) setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 800);
-        }
+        document.getElementById('btn-add-cpu').onclick = () => {
+            const players = Object.values(currentData.players || {});
+            const cpuIndex = players.filter(p => p.isCPU).length + 1;
+            set(ref(db, `rooms/${roomKey}/players/cpu_${cpuIndex}`), { name: "CPU" + cpuIndex, score: 0, guessedStr: "", hearts: 17, color: "#636e72", isCPU: true });
+        };
 
         document.getElementById('btn-start').onclick = () => {
-            const isVote = document.querySelector('input[name="mode"]:checked').value === "vote";
+            const isVote = currentData.genreMode === "vote";
             let genre = "オールジャンル";
             if(isVote) {
                 const voteValues = Object.values(currentData.votes || {});
@@ -289,6 +340,7 @@
             let pool = (genre === "オールジャンル") ? Object.values(dictionary).flat() : dictionary[genre];
             const target = pool[Math.floor(Math.random() * pool.length)];
             const h = parseInt(document.getElementById('select-h').value);
+            
             const updates = { status: "playing", target, turnIdx: 0, config: {g: genre, h}, wrongAll: [] };
             Object.keys(currentData.players).forEach(pid => { 
                 updates[`players/${pid}/score`] = 0; updates[`players/${pid}/guessedStr`] = ""; updates[`players/${pid}/hearts`] = h; 
@@ -296,7 +348,6 @@
             update(ref(db, `rooms/${roomKey}`), updates);
         };
 
-        // その他UI基本関数 (既存の流用)
         function initGame(data) {
             showScreen('screen-game');
             document.getElementById('game-genre-label').innerText = "ジャンル: " + data.config.g;
@@ -317,34 +368,39 @@
             document.getElementById('heart-status').innerText = "🎈".repeat(Math.max(0, myP.hearts || 0));
             const display = document.getElementById('word-display'); display.innerHTML = "";
             data.target.split("").forEach(c => {
-                const s = document.createElement("div"); s.style="width:25px; height:35px; border-bottom:3px solid #ccc; margin:3px; font-size:1.3rem; font-weight:bold; display:flex; justify-content:center;";
+                const s = document.createElement("div"); s.style="width:28px; height:38px; border-bottom:3px solid #ccc; margin:3px; font-size:1.4rem; font-weight:bold; display:flex; justify-content:center; align-items:center;";
                 s.innerText = (myP.guessedStr || "").includes(c) ? c : ""; display.appendChild(s);
             });
+            
             const progArea = document.getElementById('progress-area'); progArea.innerHTML = "";
             Object.entries(data.players).forEach(([pid, p]) => {
-                progArea.innerHTML += `<div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; margin-bottom:5px;">
+                progArea.innerHTML += `<div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; margin-bottom:5px; background:#f9f9f9; padding:5px; border-radius:8px;">
                     <div style="min-width:70px; text-align:right;"><b style="color:${p.color}">${p.name}</b><br>🎈${p.hearts}</div>
                     <div style="display:flex; gap:2px;">${data.target.split("").map(c => `<div style="width:8px; height:8px; border-radius:50%; background:${(p.guessedStr||"").includes(c)?p.color:'#ddd'}"></div>`).join("")}</div>
                 </div>`;
             });
+
             document.querySelectorAll('.key').forEach(k => k.classList.remove('my-correct', 'wrong-all'));
             if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
             (myP.guessedStr || "").split(",").forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
+            
             const curP = Object.values(data.players)[data.turnIdx];
             const msg = document.getElementById('turn-msg'); msg.innerText = (curP?.name === myName) ? "★ あなたの番 ★" : `${curP?.name}の番...`;
+            msg.style.color = curP?.color || "#333";
         }
 
         function showResult(data, players) {
             showScreen('screen-result');
             document.getElementById('res-word').innerText = "正解: " + data.target;
             const area = document.getElementById('res-ranking'); area.innerHTML = "";
-            players.sort((a,b)=>b.score-a.score).forEach((p,i)=> area.innerHTML += `<div>${i+1}位: ${p.name} (正解:${p.score})</div>`);
+            players.sort((a,b)=>b.score-a.score).forEach((p,i)=> area.innerHTML += `<div style="padding:8px; border-bottom:1px solid #eee;"><b>${i+1}位: ${p.name}</b> (正解:${p.score} / 🎈${p.hearts})</div>`);
         }
 
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function showWrongToast(m) { const t=document.getElementById('wrong-toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1500); }
         window.sendStamp = (emoji) => update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() } });
         function showStampPopup(s) { const p=document.getElementById('stamp-popup'); p.innerText=`${s.sender}: ${s.emoji}`; p.classList.add('show'); setTimeout(()=>p.classList.remove('show'), 1500); }
+        
         document.getElementById('btn-create').onclick = () => entry(true);
         document.getElementById('btn-join').onclick = () => entry(false);
         document.getElementById('btn-replay').onclick = document.getElementById('btn-start').onclick;
