@@ -95,4 +95,287 @@
                     <div class="color-dot" style="background:#2ed573" data-color="#2ed573"></div>
                     <div class="color-dot" style="background:#ffa502" data-color="#ffa502"></div>
                     <div class="color-dot" style="background:#af7ac5" data-color="#af7ac5"></div>
-                    <div class="color-dot" style="background:#576574" data-color="#57
+                    <div class="color-dot" style="background:#576574" data-color="#576574"></div>
+                </div>
+                <p>メンバー: <span id="lobby-members">---</span></p>
+                <div class="host-only" style="display:none; text-align:left; background:#f9f9f9; padding:10px; border-radius:10px;">
+                    ジャンル: <select id="select-g"></select><br>
+                    ライフ: <input type="number" id="select-h" value="17" style="width:70px;"><br>
+                    <button id="btn-add-cpu" class="btn btn-cpu">＋ CPUを追加</button>
+                </div>
+                <button id="btn-start" class="btn btn-host host-only" style="display:none;">ゲーム開始！</button>
+                <p id="guest-msg" style="font-size:0.8rem; color:#666; margin-top:10px;">ホストの開始待ち...</p>
+            </div>
+
+            <div id="screen-game" class="screen panel">
+                <div id="turn-msg">準備中...</div>
+                <div id="word-display" style="display:flex; justify-content:center; flex-wrap:wrap; margin-bottom:10px;"></div>
+                <div id="progress-area"></div>
+                <div id="keyboard" class="kb-container"></div>
+            </div>
+
+            <div id="screen-result" class="screen panel">
+                <h1 id="res-status" style="font-size:2.2rem;">RESULT</h1>
+                <h2 id="res-word" style="color:var(--main); background:#eee; padding:15px; border-radius:10px;"></h2>
+                <div id="res-ranking" style="text-align:left; margin:20px 0;"></div>
+                <button id="btn-replay" class="btn btn-host host-only" style="display:none;">もう一度遊ぶ</button>
+                <button onclick="location.reload()" class="btn btn-primary" style="width:100%; margin-top:15px;">終了</button>
+            </div>
+        </div>
+
+        <div class="side-panel" id="side-right" style="display:none;">
+            <div class="stamp-grid">
+                <button class="stamp-btn" onclick="sendStamp('👏')">👏</button>
+                <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
+                <button class="stamp-btn" onclick="sendStamp('😮')">😮</button>
+                <button class="stamp-btn" onclick="sendStamp('😭')">😭</button>
+                <button class="stamp-btn" style="grid-column: span 2" onclick="sendStamp('💢')">💢</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, onDisconnect, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { dictionary } from "./questions.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWddxiv4O3gJW2Fyf2gGEwWs5dCiWuu7Y",
+            authDomain: "airhockey-1e251.firebaseapp.app",
+            projectId: "airhockey-1e251",
+            databaseURL: "https://airhockey-1e251-default-rtdb.asia-southeast1.firebasedatabase.app",
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let audioCtx;
+        function playTone(f, d, t="sine") {
+            try { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type=t; o.frequency.value=f; g.gain.setValueAtTime(0.05, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+d); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+d); } catch(e){}
+        }
+
+        const kanaGroups = [
+            { label: "あ行", chars: "あいうえお" }, { label: "か行", chars: "かきくけこ" },
+            { label: "さ行", chars: "さしすせそ" }, { label: "たち行", chars: "たちつてと" },
+            { label: "な行", chars: "なにぬねの" }, { label: "は行", chars: "はひふへほ" },
+            { label: "ま行", chars: "まみむめも" }, { label: "や行", chars: "やゆよ" },
+            { label: "ら行", chars: "らりるれろ" }, { label: "わ行", chars: "わをんー" },
+            { label: "濁・小", chars: "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっぁぃぅぇぉゔ" }
+        ];
+
+        let myId, myName, roomKey, isHost = false, currentData = null, lastStatus = "entry", lastStampTime = 0, lastWrongTime = 0;
+        let cpuThinkTimeout;
+
+        const entry = (host) => {
+            isHost = host;
+            myName = document.getElementById('input-name').value || "プレイヤー";
+            roomKey = "room_" + (document.getElementById('input-room').value || "123");
+            myId = Math.random().toString(36).slice(2, 7);
+            
+            showScreen('screen-lobby');
+            document.getElementById('side-left').style.display = 'block';
+            document.getElementById('side-right').style.display = 'block';
+            if(host) document.querySelectorAll('.host-only').forEach(el => el.style.display = 'block');
+            
+            const roomRef = ref(db, `rooms/${roomKey}`);
+            const pRef = ref(db, `rooms/${roomKey}/players/${myId}`);
+            
+            if(host) set(roomRef, { status: "lobby", config: { g: Object.keys(dictionary)[0], h: 17 }, lastWrong: {time:0}, lastStamp: {time:0} });
+            set(pRef, { name: myName, score: 0, guessedStr: "", hearts: 17, host: host, color: "#4a90e2", isCPU: false });
+            onDisconnect(pRef).remove();
+            
+            onValue(roomRef, (snap) => {
+                const data = snap.val(); if(!data) return;
+                currentData = data;
+                const players = Object.entries(data.players || {}).map(([id, p]) => ({id, ...p}));
+                document.getElementById('lobby-members').innerText = players.map(p => p.name).join(", ");
+                updateColorDots(players);
+                
+                if(data.lastStamp?.time > lastStampTime) { lastStampTime = data.lastStamp.time; showStampPopup(data.lastStamp); }
+
+                if(data.status === "playing") {
+                    const curP = players[data.turnIdx];
+                    if(curP?.id === myId) playTone(440, 0.05, "triangle");
+                    if(data.lastWrong?.time > lastWrongTime) {
+                        lastWrongTime = data.lastWrong.time; showWrongToast(data.lastWrong.char); playTone(220, 0.3, "square");
+                    }
+                    // CPU動作ロジック（ホストが代行）
+                    if(isHost && curP?.isCPU) handleCPUTurn(curP, data);
+                }
+
+                if(data.status !== lastStatus) {
+                    lastStatus = data.status;
+                    if(data.status === "playing") initGame(data);
+                    else if(data.status === "finished") showResult(data, players);
+                    else if(data.status === "lobby") showScreen('screen-lobby');
+                } else if(data.status === "playing") renderUI(data);
+            });
+
+            onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
+                const box = document.getElementById('chat-box'); box.innerHTML = "";
+                const chats = snap.val();
+                if(chats) Object.values(chats).slice(-20).forEach(c => {
+                    const d = document.createElement('div'); d.innerHTML = `<b>${c.sender}:</b> ${c.msg}`; box.appendChild(d);
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        };
+
+        // CPU追加機能
+        document.getElementById('btn-add-cpu').onclick = () => {
+            const cid = "cpu_" + Math.random().toString(36).slice(2, 5);
+            const colors = ["#4a90e2", "#ff4757", "#2ed573", "#ffa502", "#af7ac5", "#576574"];
+            set(ref(db, `rooms/${roomKey}/players/${cid}`), {
+                name: "CPU_" + cid.split('_')[1], score: 0, guessedStr: "", hearts: currentData.config.h, host: false, color: colors[Math.floor(Math.random()*6)], isCPU: true
+            });
+        };
+
+        function handleCPUTurn(cpu, data) {
+            clearTimeout(cpuThinkTimeout);
+            cpuThinkTimeout = setTimeout(() => {
+                const allKana = kanaGroups.map(g => g.chars).join("").split("");
+                const guessedByAnyone = Object.values(data.players).flatMap(p => (p.guessedStr || "").split(","));
+                const wrongAll = data.wrongAll || [];
+                const possible = allKana.filter(c => !guessedByAnyone.includes(c) && !wrongAll.includes(c) && !data.config.removed?.includes(c));
+                if(possible.length > 0) {
+                    const choice = possible[Math.floor(Math.random() * possible.length)];
+                    processGuess(cpu.id, choice);
+                }
+            }, 1500);
+        }
+
+        function processGuess(pid, char) {
+            const data = currentData;
+            const p = data.players[pid];
+            const updates = {};
+            if(data.target.includes(char)) {
+                const g = (p.guessedStr ? p.guessedStr + "," : "") + char;
+                updates[`players/${pid}/guessedStr`] = g;
+                updates[`players/${pid}/score`] = g.split(",").length;
+            } else {
+                const newHearts = (p.hearts || 0) - 1;
+                updates[`players/${pid}/hearts`] = newHearts;
+                const wa = data.wrongAll || []; wa.push(char);
+                updates[`wrongAll`] = wa;
+                updates[`lastWrong`] = { char: char, time: Date.now() };
+            }
+            const pList = Object.keys(data.players);
+            updates[`turnIdx`] = (data.turnIdx + 1) % pList.length;
+            update(ref(db, `rooms/${roomKey}`), updates);
+
+            // 終了判定
+            const latestPlayers = {...data.players};
+            if(updates[`players/${pid}/guessedStr`]) latestPlayers[pid].guessedStr = updates[`players/${pid}/guessedStr`];
+            if(updates[`players/${pid}/hearts`] !== undefined) latestPlayers[pid].hearts = updates[`players/${pid}/hearts`];
+            
+            const isClear = data.target.split("").every(c => Object.values(latestPlayers).some(pl => (pl.guessedStr || "").includes(c)));
+            const isDead = latestPlayers[pid].hearts <= 0;
+            if(isClear || isDead) setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 800);
+        }
+
+        function handleGuess(char) {
+            const pList = Object.entries(currentData.players).map(([id, p]) => ({id, ...p}));
+            if(pList[currentData.turnIdx].id !== myId) return;
+            const btn = document.getElementById("k-"+char);
+            if(btn.classList.contains('wrong-all') || btn.classList.contains('my-correct')) return;
+            processGuess(myId, char);
+        }
+
+        function renderUI(data) {
+            const myP = data.players[myId];
+            const display = document.getElementById('word-display'); display.innerHTML = "";
+            data.target.split("").forEach(c => {
+                const s = document.createElement("div"); s.className = "slot";
+                s.innerText = (myP.guessedStr || "").includes(c) ? c : ""; display.appendChild(s);
+            });
+
+            const progArea = document.getElementById('progress-area'); progArea.innerHTML = "";
+            Object.entries(data.players).forEach(([pid, p]) => {
+                const row = document.createElement('div'); row.className = "prog-row";
+                row.innerHTML = `
+                    <div class="prog-name-box">
+                        <span class="prog-name" style="color:${p.color}">${p.name}</span>
+                        <span class="prog-hearts">❤️×${p.hearts || 0}</span>
+                    </div>
+                    <div class="p-dot-container"></div>
+                `;
+                const dotContainer = row.querySelector('.p-dot-container');
+                data.target.split("").forEach(char => {
+                    const dot = document.createElement('div'); dot.className = "p-dot";
+                    if((p.guessedStr || "").includes(char)) dot.style.background = p.color;
+                    dotContainer.appendChild(dot);
+                });
+                progArea.appendChild(row);
+            });
+
+            document.querySelectorAll('.key').forEach(k => k.classList.remove('my-correct', 'wrong-all'));
+            if(data.wrongAll) data.wrongAll.forEach(c => document.getElementById("k-"+c)?.classList.add('wrong-all'));
+            (myP.guessedStr || "").split(",").forEach(c => document.getElementById("k-"+c)?.classList.add('my-correct'));
+            
+            const pList = Object.entries(data.players).map(([id, p]) => ({id, ...p}));
+            const curP = pList[data.turnIdx];
+            const msg = document.getElementById('turn-msg');
+            msg.innerText = (curP?.id === myId) ? "★ あなたの番 ★" : `${curP?.name}の番...`;
+            msg.style.borderColor = curP?.color || "#ddd";
+        }
+
+        function showResult(data, players) {
+            showScreen('screen-result');
+            document.getElementById('res-word').innerText = "正解: " + data.target;
+            const area = document.getElementById('res-ranking'); area.innerHTML = "";
+            const sorted = players.sort((a,b) => b.score - a.score);
+            document.getElementById('res-status').innerText = (sorted[0].id === myId) ? "YOU WIN!" : "RESULT";
+            sorted.forEach((p, i) => {
+                const gList = (p.guessedStr || "").split(",").filter(s => s !== "").join(", ");
+                area.innerHTML += `<div style="border-bottom:1px solid #eee; padding:10px 0;"><div style="font-weight:bold; color:${p.color}; font-size:1.1rem;">${i+1}位: ${p.name} (❤️${p.hearts})</div><div style="font-size:0.8rem; color:#888;">正解文字: ${gList || "なし"}</div></div>`;
+            });
+        }
+
+        // 基本機能
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        function updateColorDots(players) {
+            const taken = players.filter(p => p.id !== myId).map(p => p.color);
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                const c = dot.dataset.color; dot.classList.toggle('taken', taken.includes(c));
+                dot.classList.toggle('selected', players.find(p => p.id === myId)?.color === c);
+                dot.onclick = () => { if(!taken.includes(c)) update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c }); };
+            });
+        }
+        document.getElementById('chat-input').onkeypress = (e) => {
+            if(e.key === 'Enter') {
+                const i = document.getElementById('chat-input'); if(!i.value) return;
+                push(ref(db, `rooms/${roomKey}/chats`), { sender: myName, msg: i.value, time: Date.now() }); i.value = "";
+            }
+        };
+        window.sendStamp = (emoji) => update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() } });
+        function showStampPopup(s) {
+            const p = document.getElementById('stamp-popup'); p.innerText = `${s.sender}: ${s.emoji}`; p.classList.add('show');
+            setTimeout(() => p.classList.remove('show'), 1500);
+        }
+        function showWrongToast(c) { const t=document.getElementById('wrong-toast'); t.innerText=`「${c}」はナシ！`; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1200); }
+        function initGame(data) {
+            showScreen('screen-game');
+            const kb = document.getElementById('keyboard'); kb.innerHTML = "";
+            kanaGroups.forEach(group => {
+                const label = document.createElement("div"); label.className="key-group-label"; label.innerText=group.label; kb.appendChild(label);
+                group.chars.split("").forEach(c => {
+                    const k = document.createElement("div"); k.className="key"; k.id="k-"+c; k.innerText=c;
+                    if(data.config.removed?.includes(c)) k.classList.add("removed");
+                    k.onclick = () => handleGuess(c); kb.appendChild(k);
+                });
+            });
+            renderUI(data);
+        }
+        document.getElementById('btn-create').onclick = () => entry(true);
+        document.getElementById('btn-join').onclick = () => entry(false);
+        const gSel = document.getElementById('select-g'); Object.keys(dictionary).forEach(g => { const o=document.createElement('option'); o.value=g; o.innerText=g; gSel.appendChild(o); });
+        document.getElementById('btn-start').onclick = () => {
+            const g = gSel.value, h = parseInt(document.getElementById('select-h').value), target = dictionary[g][Math.floor(Math.random()*dictionary[g].length)];
+            const allChars = kanaGroups.map(gr => gr.chars).join("").split(""), removed = allChars.filter(c => !target.includes(c)).sort(() => Math.random() - 0.5).slice(0, 10);
+            const updates = { status: "playing", target, turnIdx: 0, config: {g, h, removed}, wrongAll: [] };
+            Object.keys(currentData.players).forEach(pid => { updates[`players/${pid}/score`] = 0; updates[`players/${pid}/guessedStr`] = ""; updates[`players/${pid}/hearts`] = h; });
+            update(ref(db, `rooms/${roomKey}`), updates);
+        };
+        document.getElementById('btn-replay').onclick = document.getElementById('btn-start').onclick;
+    </script>
+</body>
+</html>
