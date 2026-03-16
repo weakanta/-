@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v38.9</title>
+    <title>コトバ・サバイバル v38.10</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -201,7 +201,7 @@
                 (data.players[myId]?.items || []).forEach((it, idx) => {
                     const b = document.createElement('button'); b.className = 'btn';
                     b.style.background = "#ffd32a"; b.style.padding = "10px"; b.style.fontSize="0.8rem"; b.style.height="auto";
-                    b.innerText = itemInfo[it]; b.onclick = () => useItem(it, idx); inv.appendChild(b);
+                    b.innerText = itemInfo[it]; b.onclick = () => useItem(myId, it, idx); inv.appendChild(b);
                 });
                 document.getElementById('game-items').style.display = data.status === "playing" ? "block" : "none";
                 if(data.lastSnd?.time > lastSndT) { lastSndT = data.lastSnd.time; playSnd(data.lastSnd.type); }
@@ -238,12 +238,28 @@
             const curId = pKeys[data.turnIdx];
             if(data.players[curId]?.isCPU) {
                 cpuThinking = true;
-                setTimeout(() => {
-                    const myCorrect = data.players[curId].guessed || "";
-                    const possible = kanaLayout.filter(c => c !== " " && !data.wrongAll?.includes(c) && !myCorrect.includes(c));
-                    if(possible.length > 0) handleGuess(curId, possible[Math.floor(Math.random()*possible.length)]);
+                const cpuItems = data.players[curId].items || [];
+                const willUseItem = cpuItems.length > 0 && Math.random() < 0.4; // 40%でアイテム使用
+
+                const doGuess = () => {
+                    const latestPKeys = Object.keys(currentData.players).sort();
+                    if(currentData.status === "playing" && latestPKeys[currentData.turnIdx] === curId) {
+                        const myCorrect = currentData.players[curId].guessed || "";
+                        const possible = kanaLayout.filter(c => c !== " " && !currentData.wrongAll?.includes(c) && !myCorrect.includes(c));
+                        if(possible.length > 0) handleGuess(curId, possible[Math.floor(Math.random()*possible.length)]);
+                    }
                     cpuThinking = false;
-                }, 1500);
+                };
+
+                if (willUseItem) {
+                    setTimeout(() => {
+                        const itemIdx = Math.floor(Math.random() * cpuItems.length);
+                        useItem(curId, cpuItems[itemIdx], itemIdx);
+                        setTimeout(doGuess, 1500);
+                    }, 1000);
+                } else {
+                    setTimeout(doGuess, 1500);
+                }
             }
         }
 
@@ -290,7 +306,8 @@
             const pKeys = Object.keys(currentData.players).sort();
             if(pKeys[currentData.turnIdx] !== pid) return;
             initSnd(); const data = currentData; const p = data.players[pid]; const updates = {};
-            if(Math.random() < 0.15 && !p.isCPU) {
+            
+            if(Math.random() < 0.15) {
                 const it = Object.keys(itemInfo)[Math.floor(Math.random() * 4)];
                 updates[`players/${pid}/items`] = [...(p.items || []), it];
                 updates[`lastMsg`] = { text: `${p.name}が [${itemInfo[it]}] をゲット！`, time: Date.now() };
@@ -311,39 +328,43 @@
             if(updates[`players/${pid}/guessed`] !== undefined) latest[pid].guessed = updates[`players/${pid}/guessed`];
             if(updates[`players/${pid}/hearts`] !== undefined) latest[pid].hearts = updates[`players/${pid}/hearts`];
 
-            // ▼ 全員の終了判定と、スキップするターン計算
-            let nextTurnIdx = (data.turnIdx + 1) % pKeys.length;
-            let isAllFinished = true;
-            for(let i=0; i<pKeys.length; i++) {
-                const checkId = pKeys[nextTurnIdx];
-                const checkP = latest[checkId];
+            const activePlayers = pKeys.filter(id => {
+                const checkP = latest[id];
                 const isCompleted = data.target.split("").every(c => (checkP.guessed || "").includes(c));
-                if (checkP.hearts > 0 && !isCompleted) {
-                    isAllFinished = false;
-                    break;
+                return checkP.hearts > 0 && !isCompleted;
+            });
+
+            const isGameOver = (pKeys.length > 1) ? (activePlayers.length <= 1) : (activePlayers.length === 0);
+
+            let nextTurnIdx = (data.turnIdx + 1) % pKeys.length;
+            if(!isGameOver) {
+                for(let i=0; i<pKeys.length; i++) {
+                    if (activePlayers.includes(pKeys[nextTurnIdx])) break;
+                    nextTurnIdx = (nextTurnIdx + 1) % pKeys.length;
                 }
-                nextTurnIdx = (nextTurnIdx + 1) % pKeys.length;
             }
             
             updates[`turnIdx`] = nextTurnIdx;
             update(ref(db, `rooms/${roomKey}`), updates);
 
-            if(isAllFinished) {
+            if(isGameOver) {
                 setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 800);
             }
         }
 
-        function useItem(type, idx) {
-            initSnd(); const p = currentData.players[myId]; const items = [...p.items]; items.splice(idx, 1);
-            const up = { [`players/${myId}/items`]: items, lastSnd: {type:'item', time:Date.now()}, lastMsg: {text:`${p.name}が [${itemInfo[type]}] を使用！`, time:Date.now()} };
-            if(type === "HEAL") up[`players/${myId}/hearts`] = (p.hearts || 0) + 5;
-            else if(type === "ATTACK") Object.keys(currentData.players).forEach(id => { if(id !== myId) up[`players/${id}/hearts`] = Math.max(0, (currentData.players[id].hearts || 0) - 3); });
+        function useItem(pid, type, idx) {
+            initSnd(); const data = currentData; const pKeys = Object.keys(data.players).sort();
+            const p = data.players[pid]; const items = [...p.items]; items.splice(idx, 1);
+            const up = { [`players/${pid}/items`]: items, lastSnd: {type:'item', time:Date.now()}, lastMsg: {text:`${p.name}が [${itemInfo[type]}] を使用！`, time:Date.now()} };
+            
+            if(type === "HEAL") up[`players/${pid}/hearts`] = (p.hearts || 0) + 5;
+            else if(type === "ATTACK") pKeys.forEach(id => { if(id !== pid) up[`players/${id}/hearts`] = Math.max(0, (data.players[id].hearts || 0) - 3); });
             else if(type === "REVEAL") {
-                const h = currentData.target.split("").filter(c => !(p.guessed || "").includes(c));
-                if(h.length > 0) { const c = h[Math.floor(Math.random()*h.length)]; up[`players/${myId}/guessed`] = (p.guessed ? p.guessed + "," : "") + c; up[`players/${myId}/score`] = up[`players/${myId}/guessed`].split(",").length; }
+                const h = data.target.split("").filter(c => !(p.guessed || "").includes(c));
+                if(h.length > 0) { const c = h[Math.floor(Math.random()*h.length)]; up[`players/${pid}/guessed`] = (p.guessed ? p.guessed + "," : "") + c; up[`players/${pid}/score`] = up[`players/${pid}/guessed`].split(",").length; }
             } else if(type === "CLEAN") {
-                const wa = currentData.wrongAll || [];
-                const targetChars = currentData.target.split("");
+                const wa = data.wrongAll || [];
+                const targetChars = data.target.split("");
                 const possible = kanaLayout.filter(c => c !== " " && !targetChars.includes(c) && !wa.includes(c));
                 const newWa = [...wa];
                 for(let i=0; i<10 && possible.length>0; i++) {
@@ -352,7 +373,38 @@
                 }
                 up[`wrongAll`] = newWa;
             }
+
+            const latest = JSON.parse(JSON.stringify(data.players));
+            Object.keys(up).forEach(k => {
+                if(k.startsWith("players/")) {
+                    const parts = k.split("/");
+                    if(!latest[parts[1]]) latest[parts[1]] = {};
+                    latest[parts[1]][parts[2]] = up[k];
+                }
+            });
+
+            const activePlayers = pKeys.filter(id => {
+                const checkP = latest[id];
+                const isCompleted = data.target.split("").every(c => (checkP.guessed || "").includes(c));
+                return checkP.hearts > 0 && !isCompleted;
+            });
+
+            const isGameOver = (pKeys.length > 1) ? (activePlayers.length <= 1) : (activePlayers.length === 0);
+
+            if (!activePlayers.includes(pid) && !isGameOver) {
+                let nextTurnIdx = (data.turnIdx + 1) % pKeys.length;
+                for(let i=0; i<pKeys.length; i++) {
+                    if (activePlayers.includes(pKeys[nextTurnIdx])) break;
+                    nextTurnIdx = (nextTurnIdx + 1) % pKeys.length;
+                }
+                up[`turnIdx`] = nextTurnIdx;
+            }
+
             update(ref(db, `rooms/${roomKey}`), up);
+
+            if(isGameOver) {
+                setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 800);
+            }
         }
 
         function updateUI(data, pKeys) {
@@ -362,7 +414,6 @@
             const curId = pKeys[data.turnIdx]; 
             const isMyTurn = (curId === myId && !isSpectating);
             
-            // 観戦中は現在ターンのプレイヤーのデータを表示
             const displayP = isSpectating ? (data.players[curId] || myActualP) : myActualP;
 
             document.getElementById('heart-status').innerText = "🎈".repeat(Math.max(0, displayP.hearts || 0));
