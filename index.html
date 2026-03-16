@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v38.14</title>
+    <title>コトバ・サバイバル v38.15</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; touch-action: manipulation; }
@@ -16,7 +16,7 @@
             .game-wrapper { flex-direction: row; justify-content: center; align-items: flex-start; }
             .side-panel { width: 200px; position: sticky; top: 10px; }
             .main-column { flex: 1; max-width: 600px; }
-            .kb-container { grid-template-columns: repeat(10, 1fr) !important; } /* 横画面は10列でスリムに */
+            .kb-container { grid-template-columns: repeat(10, 1fr) !important; }
         }
 
         .panel { background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); box-sizing: border-box; margin-bottom: 10px; position: relative; }
@@ -33,7 +33,7 @@
         /* ゲーム画面の文字枠 */
         .word-slot { width: 8vw; max-width: 40px; height: 50px; border-bottom: 3px solid #4a90e2; margin: 2px; font-size: 1.5rem; font-weight: 900; display: flex; align-items: center; justify-content: center; color: #222; }
 
-        /* キーボード設定（スマホ縦向き時は5列） */
+        /* キーボード設定 */
         .kb-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: #e2e8f0; padding: 8px; border-radius: 12px; }
         .key { aspect-ratio: 1; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; font-size: 0.9rem; }
         .key.correct { background: #bdc3c7 !important; color: #7f8c8d; box-shadow: none; pointer-events: none; opacity: 0.5; }
@@ -70,6 +70,9 @@
                 <input type="text" id="chat-input" placeholder="チャット...">
                 <button id="sound-btn" onclick="toggleSnd()" style="width:100%; padding:8px; border-radius:8px; border:none; background:#2ed573; color:white; font-weight:bold; cursor:pointer; margin-top:8px; font-size:0.8rem;">🔊 音: ON</button>
                 <button id="rule-btn" onclick="showRules()" style="width:100%; padding:8px; border-radius:8px; border:none; background:#4a90e2; color:white; font-weight:bold; cursor:pointer; margin-top:8px; font-size:0.8rem;">？ ルール説明</button>
+            </div>
+            <div id="game-items" class="panel" style="padding:10px; display:none;">
+                <div id="my-inventory" style="display:flex; flex-direction:column; gap:5px;"></div>
             </div>
         </div>
 
@@ -132,9 +135,6 @@
                     <button class="stamp-btn" onclick="sendStamp('😮')">😮</button>
                     <button class="stamp-btn" onclick="sendStamp('😭')">😭</button>
                 </div>
-            </div>
-            <div id="game-items" class="panel" style="padding:10px; display:none;">
-                <div id="my-inventory" style="display:flex; flex-direction:column; gap:5px;"></div>
             </div>
         </div>
     </div>
