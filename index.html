@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v38.16</title>
+    <title>コトバ・サバイバル v38.17</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; touch-action: manipulation; }
@@ -45,9 +45,11 @@
 
         .stamp-btn { font-size: 1.5rem; height: 50px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 12px; }
 
+        /* スタンプの緩急アニメーション */
         #toast { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.9); color: white; padding: 15px 25px; border-radius: 15px; z-index: 9999; transition: 0.3s; pointer-events: none; font-weight: bold; font-size: 1rem; }
-        .floating-stamp { position: fixed; background: white; padding: 8px 15px; border-radius: 30px; border: 3px solid var(--main); z-index: 999; transition: 0.5s; font-weight: bold; font-size: 1rem; pointer-events: none; animation: popIn 0.3s ease-out forwards; }
-        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .floating-stamp { position: fixed; background: white; padding: 8px 15px; border-radius: 30px; border: 3px solid var(--main); z-index: 999; font-weight: bold; font-size: 1rem; pointer-events: none; animation: popBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; transition: transform 0.3s ease, opacity 0.3s ease; }
+        .floating-stamp.shrink { transform: scale(0); opacity: 0; }
+        @keyframes popBounce { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         #toast.show { transform: translate(-50%, -50%) scale(1); }
     </style>
 </head>
@@ -68,7 +70,7 @@
                 <button id="rule-btn" onclick="showRules()" style="width:100%; padding:8px; border-radius:8px; border:none; background:#4a90e2; color:white; font-weight:bold; cursor:pointer; margin-top:8px; font-size:0.8rem;">？ ルール説明</button>
             </div>
             <div id="game-items" class="panel" style="padding:10px; display:none;">
-                <div id="my-inventory" style="display:flex; flex-direction:column; gap:5px;"></div>
+                <div id="my-inventory" style="display:flex; flex-direction:column; gap:5px; min-height:100px; justify-content: flex-start;"></div>
             </div>
         </div>
 
@@ -202,7 +204,7 @@
                 updatePlayerList(data, pKeys); renderColorPalette(data); renderVotes(data);
                 const inv = document.getElementById('my-inventory'); inv.innerHTML = "";
                 const myItems = data.players[myId]?.items || [];
-                if(myItems.length === 0) { inv.innerHTML = '<div style="font-size:0.7rem; color:#999; padding:5px;">アイテムはここに表示されます</div>'; }
+                if(myItems.length === 0) { inv.innerHTML = '<div style="font-size:0.7rem; color:#999; padding:15px; text-align:center;">（空っぽ）</div>'; }
                 else { myItems.forEach((it, idx) => { const b = document.createElement('button'); b.className = 'btn'; b.style.background = "#ffd32a"; b.style.padding = "5px"; b.style.fontSize="0.7rem"; b.style.height="auto"; b.innerText = itemInfo[it]; b.onclick = () => useItem(myId, it, idx); inv.appendChild(b); }); }
                 document.getElementById('game-items').style.display = data.status === "playing" ? "block" : "none";
                 if(data.lastSnd?.time > lastSndT) { lastSndT = data.lastSnd.time; playSnd(data.lastSnd.type); }
@@ -312,11 +314,18 @@
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function showT(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
         window.sendStamp = (emoji) => { initSnd(); update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() }, lastSnd: { type: 'stamp', time: Date.now() } }); };
+        
         function showS(s) {
             const container = document.getElementById('stamp-container'); const div = document.createElement('div'); div.className = 'floating-stamp'; div.innerText = `${s.sender}: ${s.emoji}`;
-            const randX = Math.floor(Math.random() * 40) + 30; const randY = Math.floor(Math.random() * 40) + 10;
+            // 中央寄り（40%〜60%）に出現
+            const randX = Math.floor(Math.random() * 21) + 40; 
+            const randY = Math.floor(Math.random() * 21) + 30;
             div.style.left = randX + "%"; div.style.top = randY + "%"; container.appendChild(div);
-            setTimeout(() => { div.style.opacity = "0"; setTimeout(() => div.remove(), 500); }, 1500);
+            // 1.5秒後に小さくなって消える
+            setTimeout(() => { 
+                div.classList.add('shrink');
+                setTimeout(() => div.remove(), 300); 
+            }, 1500);
         }
 
         document.getElementById('btn-create').onclick = () => startEntry(true);
