@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v38.17</title>
+    <title>コトバ・サバイバル v38.18</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; touch-action: manipulation; }
@@ -45,12 +45,18 @@
 
         .stamp-btn { font-size: 1.5rem; height: 50px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 12px; }
 
-        /* スタンプの緩急アニメーション */
         #toast { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.9); color: white; padding: 15px 25px; border-radius: 15px; z-index: 9999; transition: 0.3s; pointer-events: none; font-weight: bold; font-size: 1rem; }
-        .floating-stamp { position: fixed; background: white; padding: 8px 15px; border-radius: 30px; border: 3px solid var(--main); z-index: 999; font-weight: bold; font-size: 1rem; pointer-events: none; animation: popBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; transition: transform 0.3s ease, opacity 0.3s ease; }
-        .floating-stamp.shrink { transform: scale(0); opacity: 0; }
-        @keyframes popBounce { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         #toast.show { transform: translate(-50%, -50%) scale(1); }
+        
+        /* スタンプのアニメーション設定 */
+        .floating-stamp { 
+            position: fixed; background: white; padding: 8px 15px; border-radius: 30px; 
+            border: 3px solid var(--main); z-index: 999; font-weight: bold; font-size: 1rem; 
+            pointer-events: none; 
+            animation: popBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            transition: transform 0.5s ease-in, opacity 0.5s ease-in; 
+        }
+        @keyframes popBounce { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -163,6 +169,7 @@
         window.toggleSnd = () => { soundOn = !soundOn; document.getElementById('sound-btn').innerText = soundOn ? "🔊 音: ON" : "🔇 音: OFF"; if(soundOn) initSnd(); };
         function playSnd(type) {
             if(!soundOn || !audioCtx) return;
+            if(audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
             osc.connect(g); g.connect(audioCtx.destination); const now = audioCtx.currentTime;
             if(type === 'ok') { osc.frequency.setValueAtTime(880, now); osc.frequency.exponentialRampToValueAtTime(1760, now+0.1); g.gain.setValueAtTime(0.05, now); }
@@ -258,7 +265,15 @@
 
         function renderVotes(data) {
             const container = document.getElementById('vote-buttons'); container.innerHTML = ""; const dictKeys = Object.keys(dictionary); const genres = dictKeys.includes("オールジャンル") ? dictKeys : ["オールジャンル", ...dictKeys];
-            genres.forEach(g => { const btn = document.createElement('button'); btn.className = 'btn'; btn.style.padding = "5px"; btn.style.fontSize = "0.7rem"; btn.style.background = "white"; btn.style.color = "#333"; btn.style.height="auto"; const count = Object.values(data.votes || {}).filter(v => v === g).length; btn.innerText = `${g} ${data.genreMode === "vote" ? `(${count})` : ''}`; if(data.genreMode === "vote") { if(data.votes?.[myId] === g) btn.style.border = "2px solid var(--main)"; btn.onclick = () => update(ref(db, `rooms/${roomKey}/votes`), { [myId]: g }); } else if(isHost) { if(data.selectedGenre === g) btn.style.border = "2px solid var(--main)"; btn.onclick = () => update(ref(db, `rooms/${roomKey}`), { selectedGenre: g }); } container.appendChild(btn); });
+            genres.forEach(g => { 
+                const btn = document.createElement('button'); btn.className = 'btn'; 
+                // ジャンルボタンを少し縦長にするため、paddingの上下を10pxに変更
+                btn.style.padding = "10px 5px"; btn.style.fontSize = "0.8rem"; btn.style.background = "white"; btn.style.color = "#333"; btn.style.height="auto"; 
+                const count = Object.values(data.votes || {}).filter(v => v === g).length; btn.innerText = `${g} ${data.genreMode === "vote" ? `(${count})` : ''}`; 
+                if(data.genreMode === "vote") { if(data.votes?.[myId] === g) btn.style.border = "2px solid var(--main)"; btn.onclick = () => update(ref(db, `rooms/${roomKey}/votes`), { [myId]: g }); } 
+                else if(isHost) { if(data.selectedGenre === g) btn.style.border = "2px solid var(--main)"; btn.onclick = () => update(ref(db, `rooms/${roomKey}`), { selectedGenre: g }); } 
+                container.appendChild(btn); 
+            });
         }
 
         function initGame(data) {
@@ -313,19 +328,32 @@
 
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function showT(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
-        window.sendStamp = (emoji) => { initSnd(); update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() }, lastSnd: { type: 'stamp', time: Date.now() } }); };
+        
+        window.sendStamp = (emoji) => { 
+            initSnd(); 
+            // 自分が押したときに確実に音を鳴らす
+            playSnd('stamp');
+            update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() }, lastSnd: { type: 'stamp', time: Date.now() } }); 
+        };
         
         function showS(s) {
-            const container = document.getElementById('stamp-container'); const div = document.createElement('div'); div.className = 'floating-stamp'; div.innerText = `${s.sender}: ${s.emoji}`;
-            // 中央寄り（40%〜60%）に出現
+            const container = document.getElementById('stamp-container'); 
+            const div = document.createElement('div'); 
+            div.className = 'floating-stamp'; 
+            div.innerText = `${s.sender}: ${s.emoji}`;
+            
             const randX = Math.floor(Math.random() * 21) + 40; 
             const randY = Math.floor(Math.random() * 21) + 30;
-            div.style.left = randX + "%"; div.style.top = randY + "%"; container.appendChild(div);
-            // 1.5秒後に小さくなって消える
+            div.style.left = randX + "%"; 
+            div.style.top = randY + "%"; 
+            container.appendChild(div);
+            
+            // 表示されてから1秒(1000ms)後に、0.5秒(500ms)かけて小さくなりながら消える (合計1500ms)
             setTimeout(() => { 
-                div.classList.add('shrink');
-                setTimeout(() => div.remove(), 300); 
-            }, 1500);
+                div.style.transform = "scale(0)";
+                div.style.opacity = "0";
+                setTimeout(() => div.remove(), 500); 
+            }, 1000);
         }
 
         document.getElementById('btn-create').onclick = () => startEntry(true);
