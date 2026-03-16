@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v38.15</title>
+    <title>コトバ・サバイバル v38.16</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; touch-action: manipulation; }
         
-        /* レイアウト全体設定 */
         .game-wrapper { display: flex; flex-direction: column; gap: 10px; padding: 10px; max-width: 1200px; margin: 0 auto; }
         
-        /* PC・横画面時の配置 */
         @media (min-width: 900px) or (orientation: landscape) {
             .game-wrapper { flex-direction: row; justify-content: center; align-items: flex-start; }
             .side-panel { width: 200px; position: sticky; top: 10px; }
@@ -23,51 +21,49 @@
         .screen { display: none; }
         .active { display: block; }
         
-        /* 入力フォーム */
         #screen-entry input[type="text"] { padding: 12px; font-size: 1rem; border-radius: 12px; border: 2px solid #ddd; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
         .btn { padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; width: 100%; box-sizing: border-box; }
         .btn-primary { background: var(--main); color: white; box-shadow: 0 4px 0 #357abd; }
         .btn-host { background: orange; color: white; margin-top: 8px; box-shadow: 0 4px 0 #d35400; }
         .btn-cpu { background: #8e44ad; color: white; margin-top: 8px; padding: 10px; }
 
-        /* ゲーム画面の文字枠 */
         .word-slot { width: 8vw; max-width: 40px; height: 50px; border-bottom: 3px solid #4a90e2; margin: 2px; font-size: 1.5rem; font-weight: 900; display: flex; align-items: center; justify-content: center; color: #222; }
 
-        /* キーボード設定 */
         .kb-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: #e2e8f0; padding: 8px; border-radius: 12px; }
         .key { aspect-ratio: 1; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #cbd5e0; font-size: 0.9rem; }
         .key.correct { background: #bdc3c7 !important; color: #7f8c8d; box-shadow: none; pointer-events: none; opacity: 0.5; }
         .key.wrong { background: var(--danger) !important; color: white; box-shadow: none; pointer-events: none; opacity: 0.3; }
         .kb-disabled { opacity: 0.5; pointer-events: none; filter: grayscale(0.5); }
 
-        /* 進捗リスト */
         .progress-item { background: #f8f9fa; padding: 6px 10px; border-radius: 10px; margin-bottom: 4px; text-align: left; font-size: 0.8rem; border-left: 4px solid transparent; }
         .status-badge { font-size: 0.6rem; padding: 1px 4px; border-radius: 3px; margin-left: 4px; font-weight: bold; }
         .alive { background: #d1f7e4; color: #15ad5c; }
         .dead { background: #ffe0e3; color: #ff4757; }
 
-        /* チャット */
         #chat-box { height: 150px; overflow-y: auto; text-align: left; font-size: 0.85rem; background: #f8f9fa; border-radius: 10px; padding: 10px; border: 1px solid #eee; margin-bottom: 8px; }
-        #chat-input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 0.9rem; }
+        #chat-input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 0.9rem; }
 
-        /* スタンプ */
         .stamp-btn { font-size: 1.5rem; height: 50px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 12px; }
 
         #toast { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(0,0,0,0.9); color: white; padding: 15px 25px; border-radius: 15px; z-index: 9999; transition: 0.3s; pointer-events: none; font-weight: bold; font-size: 1rem; }
-        #stamp-pop { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 10px 20px; border-radius: 30px; border: 3px solid var(--main); z-index: 999; transition: 0.3s; font-weight: bold; font-size: 1rem; }
-        #toast.show, #stamp-pop.show { transform: translate(-50%, -50%) scale(1); }
+        .floating-stamp { position: fixed; background: white; padding: 8px 15px; border-radius: 30px; border: 3px solid var(--main); z-index: 999; transition: 0.5s; font-weight: bold; font-size: 1rem; pointer-events: none; animation: popIn 0.3s ease-out forwards; }
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        #toast.show { transform: translate(-50%, -50%) scale(1); }
     </style>
 </head>
 <body>
 
     <div id="toast"></div>
-    <div id="stamp-pop"></div>
+    <div id="stamp-container"></div>
 
     <div class="game-wrapper">
         <div class="side-panel" id="side-left" style="display:none;">
             <div class="panel" style="padding:10px;">
                 <div id="chat-box"></div>
-                <input type="text" id="chat-input" placeholder="チャット...">
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="chat-input" placeholder="チャット...">
+                    <button id="chat-send-btn" class="btn" style="width:60px; padding:5px; font-size:0.8rem; background:var(--main); color:white; height:40px;">送信</button>
+                </div>
                 <button id="sound-btn" onclick="toggleSnd()" style="width:100%; padding:8px; border-radius:8px; border:none; background:#2ed573; color:white; font-weight:bold; cursor:pointer; margin-top:8px; font-size:0.8rem;">🔊 音: ON</button>
                 <button id="rule-btn" onclick="showRules()" style="width:100%; padding:8px; border-radius:8px; border:none; background:#4a90e2; color:white; font-weight:bold; cursor:pointer; margin-top:8px; font-size:0.8rem;">？ ルール説明</button>
             </div>
@@ -159,9 +155,7 @@
         const itemInfo = { HEAL: "🎈回復", ATTACK: "💣攻撃", REVEAL: "🔍透視", CLEAN: "🧹掃除" };
         const kanaLayout = ["あ","い","う","え","お","か","き","く","け","こ","さ","し","す","せ","そ","た","ち","つ","て","と","な","に","ぬ","ね","の","は","ひ","ふ","へ","ほ","ま","み","む","め","も","や"," ","ゆ"," ","よ","ら","り","る","れ","ろ","わ","を","ん","ー"," ","が","ぎ","ぐ","げ","ご","ざ","じ","ず","ぜ","ぞ","だ","ぢ","づ","で","ど","ば","び","ぶ","べ","ぼ","ぱ","ぴ","ぷ","ぺ","ぽ","ゃ","ゅ","ょ","っ"," ","ぁ","ぃ","ぅ","ぇ","ぉ","ゔ"];
 
-        window.showRules = () => {
-            alert("【コトバ・サバイバル ルール】\n\n1. 交互に文字を当てよう！\n2. 不正解なら風船(🎈)が減ります。\n3. 風船が0になると「死亡」です。\n4. たまにアイテムが手に入ります。\n5. 全員がクリアか死亡すると終了です。");
-        };
+        window.showRules = () => { alert("【コトバ・サバイバル ルール】\n\n1. 交互に文字を当てよう！\n2. 不正解なら風船(🎈)が減ります。\n3. 風船が0になると「死亡」です。\n4. たまにアイテムが手に入ります。\n5. 全員がクリアか死亡すると終了です。"); };
 
         function initSnd() { if(soundOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx?.state === 'suspended') audioCtx.resume(); }
         window.toggleSnd = () => { soundOn = !soundOn; document.getElementById('sound-btn').innerText = soundOn ? "🔊 音: ON" : "🔇 音: OFF"; if(soundOn) initSnd(); };
@@ -189,7 +183,14 @@
             document.getElementById('side-right').style.display = 'block';
             showScreen('screen-lobby');
             if(host) document.querySelectorAll('.host-only').forEach(e => e.style.display = 'block');
-            document.getElementById('chat-input').onkeydown = (e) => { if(e.key === 'Enter' && e.target.value.trim()) { push(ref(db, `rooms/${roomKey}/chats`), { name: myName, text: e.target.value, color: currentData.players[myId].color }); e.target.value = ''; } };
+            
+            const sendChat = () => {
+                const el = document.getElementById('chat-input');
+                if(el.value.trim()) { push(ref(db, `rooms/${roomKey}/chats`), { name: myName, text: el.value, color: currentData.players[myId].color }); el.value = ''; }
+            };
+            document.getElementById('chat-input').onkeydown = (e) => { if(e.key === 'Enter') sendChat(); };
+            document.getElementById('chat-send-btn').onclick = sendChat;
+
             onValue(ref(db, `rooms/${roomKey}/chats`), (snap) => {
                 const box = document.getElementById('chat-box'); box.innerHTML = '';
                 snap.forEach(child => { const c = child.val(); box.innerHTML += `<div><b style="color:${c.color}">${c.name}</b>: ${c.text}</div>`; });
@@ -244,7 +245,13 @@
 
         function renderColorPalette(data) {
             const cp = document.getElementById('color-palette'); cp.innerHTML = ''; const taken = Object.values(data.players).map(p => p.color);
-            colors.forEach(c => { const b = document.createElement('div'); const isMine = data.players[myId]?.color === c; b.style.width = "30px"; b.style.height = "30px"; b.style.borderRadius = "50%"; b.style.background = c; b.style.cursor = "pointer"; b.style.border = isMine ? "3px solid #333" : "3px solid transparent"; if(taken.includes(c) && !isMine) b.style.opacity = "0.2"; else b.onclick = () => update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c }); cp.appendChild(b); });
+            colors.forEach(c => { 
+                const b = document.createElement('div'); const isMine = data.players[myId]?.color === c; const isTaken = taken.includes(c) && !isMine;
+                b.style.width = "30px"; b.style.height = "30px"; b.style.borderRadius = "50%"; b.style.background = c; b.style.border = isMine ? "3px solid #333" : "3px solid transparent";
+                if(isTaken) { b.style.opacity = "0.15"; b.style.cursor = "not-allowed"; b.innerHTML = "×"; b.style.display="flex"; b.style.alignItems="center"; b.style.justifyContent="center"; b.style.color="white"; b.style.fontSize="20px"; }
+                else { b.style.cursor = "pointer"; b.onclick = () => update(ref(db, `rooms/${roomKey}/players/${myId}`), { color: c }); }
+                cp.appendChild(b); 
+            });
         }
 
         function renderVotes(data) {
@@ -305,7 +312,13 @@
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function showT(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
         window.sendStamp = (emoji) => { initSnd(); update(ref(db, `rooms/${roomKey}`), { lastStamp: { emoji, sender: myName, time: Date.now() }, lastSnd: { type: 'stamp', time: Date.now() } }); };
-        function showS(s) { const p=document.getElementById('stamp-pop'); p.innerText=`${s.sender}: ${s.emoji}`; p.classList.add('show'); setTimeout(()=>p.classList.remove('show'), 1500); }
+        function showS(s) {
+            const container = document.getElementById('stamp-container'); const div = document.createElement('div'); div.className = 'floating-stamp'; div.innerText = `${s.sender}: ${s.emoji}`;
+            const randX = Math.floor(Math.random() * 40) + 30; const randY = Math.floor(Math.random() * 40) + 10;
+            div.style.left = randX + "%"; div.style.top = randY + "%"; container.appendChild(div);
+            setTimeout(() => { div.style.opacity = "0"; setTimeout(() => div.remove(), 500); }, 1500);
+        }
+
         document.getElementById('btn-create').onclick = () => startEntry(true);
         document.getElementById('btn-join').onclick = () => startEntry(false);
         document.getElementById('btn-add-cpu').onclick = () => { const id = "cpu_" + Math.random().toString(36).slice(2, 7); const taken = Object.values(currentData.players).map(p => p.color); update(ref(db, `rooms/${roomKey}/players/${id}`), { name: "🤖 CPU", color: colors.find(c => !taken.includes(c)) || colors[0], hearts: 17, score: 0, guessed: "", items: [], isCPU: true }); };
