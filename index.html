@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コトバ・サバイバル v38.8</title>
+    <title>コトバ・サバイバル v38.9</title>
     <style>
         :root { --main: #4a90e2; --sub: #2ed573; --danger: #ff4757; --bg: #f4f7f9; }
         body { background: var(--bg); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; text-align: center; color: #333; overflow-x: hidden; }
@@ -306,20 +306,29 @@
                 updates[`lastMsg`] = { text: `「${char}」はありません！`, time: Date.now() };
                 updates[`lastSnd`] = updates[`lastSnd`] || { type: 'ng', time: Date.now() };
             }
-            updates[`turnIdx`] = (data.turnIdx + 1) % pKeys.length;
-            update(ref(db, `rooms/${roomKey}`), updates);
 
-            // ▼ ゲームの終了判定を修正
             const latest = JSON.parse(JSON.stringify(data.players));
             if(updates[`players/${pid}/guessed`] !== undefined) latest[pid].guessed = updates[`players/${pid}/guessed`];
             if(updates[`players/${pid}/hearts`] !== undefined) latest[pid].hearts = updates[`players/${pid}/hearts`];
 
-            const isWordCompleted = data.target.split("").every(c => Object.values(latest).some(pl => (pl.guessed || "").includes(c)));
-            const totalPlayers = Object.keys(latest).length;
-            const aliveCount = Object.values(latest).filter(pl => pl.hearts > 0).length;
-            const isGameOver = totalPlayers > 1 ? aliveCount <= 1 : aliveCount <= 0;
+            // ▼ 全員の終了判定と、スキップするターン計算
+            let nextTurnIdx = (data.turnIdx + 1) % pKeys.length;
+            let isAllFinished = true;
+            for(let i=0; i<pKeys.length; i++) {
+                const checkId = pKeys[nextTurnIdx];
+                const checkP = latest[checkId];
+                const isCompleted = data.target.split("").every(c => (checkP.guessed || "").includes(c));
+                if (checkP.hearts > 0 && !isCompleted) {
+                    isAllFinished = false;
+                    break;
+                }
+                nextTurnIdx = (nextTurnIdx + 1) % pKeys.length;
+            }
+            
+            updates[`turnIdx`] = nextTurnIdx;
+            update(ref(db, `rooms/${roomKey}`), updates);
 
-            if(isWordCompleted || isGameOver) {
+            if(isAllFinished) {
                 setTimeout(() => update(ref(db, `rooms/${roomKey}`), { status: "finished" }), 800);
             }
         }
@@ -347,23 +356,37 @@
         }
 
         function updateUI(data, pKeys) {
-            const myP = data.players[myId]; document.getElementById('heart-status').innerText = "🎈".repeat(Math.max(0, myP.hearts || 0));
+            const myActualP = data.players[myId];
+            const amICompleted = data.target.split("").every(c => (myActualP.guessed || "").includes(c));
+            const isSpectating = (myActualP.hearts <= 0 || amICompleted);
+            const curId = pKeys[data.turnIdx]; 
+            const isMyTurn = (curId === myId && !isSpectating);
+            
+            // 観戦中は現在ターンのプレイヤーのデータを表示
+            const displayP = isSpectating ? (data.players[curId] || myActualP) : myActualP;
+
+            document.getElementById('heart-status').innerText = "🎈".repeat(Math.max(0, displayP.hearts || 0));
             const wDisp = document.getElementById('word-display'); wDisp.innerHTML = "";
             data.target.split("").forEach(c => {
                 const s = document.createElement('div'); s.className = 'word-slot';
-                s.innerText = (myP.guessed || "").includes(c) ? c : ""; wDisp.appendChild(s);
+                s.innerText = (displayP.guessed || "").includes(c) ? c : ""; wDisp.appendChild(s);
             });
-            const curId = pKeys[data.turnIdx]; const isMyTurn = (curId === myId);
-            document.getElementById('turn-info').innerText = isMyTurn ? "★ あなたの番です ★" : `${data.players[curId]?.name}の番...`;
-            document.getElementById('turn-info').style.color = data.players[curId]?.color;
+            
+            let turnText = isMyTurn ? "★ あなたの番です ★" : `${data.players[curId]?.name}の番...`;
+            if (isSpectating && data.players[curId] && data.status === "playing") {
+                turnText = `👁️ ${data.players[curId].name} を観戦中...`;
+            }
+            document.getElementById('turn-info').innerText = turnText;
+            document.getElementById('turn-info').style.color = data.players[curId]?.color || '#333';
+            
             const kb = document.getElementById('keyboard'); kb.className = isMyTurn ? 'kb-container' : 'kb-container kb-disabled';
             
-            const myGuessedChars = myP.guessed || ""; 
+            const displayGuessedChars = displayP.guessed || ""; 
             
             document.querySelectorAll('.key').forEach(k => {
                 k.className = 'key'; 
                 if(data.wrongAll?.includes(k.innerText)) k.classList.add('wrong');
-                if(myGuessedChars.includes(k.innerText)) k.classList.add('correct');
+                if(displayGuessedChars.includes(k.innerText)) k.classList.add('correct');
             });
             const prog = document.getElementById('progress-list'); prog.innerHTML = "";
             pKeys.forEach(id => {
